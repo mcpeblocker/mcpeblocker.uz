@@ -45,7 +45,7 @@ export default function Home({ posts }: InferGetStaticPropsType<typeof getStatic
           <div className="flex justify-end text-base font-medium leading-6">
             <Link href="/blog" legacyBehavior>
               <span className="underline-magical font-bold cursor-pointer" aria-label="all posts">
-                Read All Post &rarr;
+                Read All Posts &rarr;
               </span>
             </Link>
           </div>
