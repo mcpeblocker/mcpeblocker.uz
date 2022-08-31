@@ -21,7 +21,7 @@ export default function Header() {
                 }
               )}
             >
-              d.
+              mcpeblocker
             </div>
           </Link>
         </div>

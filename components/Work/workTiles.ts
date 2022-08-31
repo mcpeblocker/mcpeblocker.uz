@@ -20,29 +20,11 @@ export const workTiles: WorkTile[] = [
   },
   {
     description: 'I helped build',
-    title: 'Aphex Field',
+    title: 'shashka.uz',
     image: {
-      src: '/static/images/field-app.png',
-      width: 600,
-      height: 554,
-    },
-  },
-  {
-    description: 'I helped maintain',
-    title: 'Aphex Planner',
-    image: {
-      src: '/static/images/planner-app.png',
-      width: 600,
-      height: 717,
-    },
-  },
-  {
-    description: `I'm currently building`,
-    title: 'Aphex Publication',
-    image: {
-      src: '/static/images/publication-app.png',
-      width: 600,
-      height: 717,
+      src: '/static/images/project/shashka.png',
+      width: 700,
+      height: 380,
     },
   },
 ]
