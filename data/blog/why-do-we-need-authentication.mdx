@@ -20,82 +20,100 @@ Yaqinda o'zim ustida ishlayotgan loyihada autentifikatsiya tizimini yo'lga qo'yi
 Keling, endi rasmiyatchilikni yig'ishtirib, asosiy maqsadga o'tamiz. 🚀
 
 Autentifikatsiya mavzusida e'tibor berishimiz kerak bo'lgan ba'zi asosiy narsalar:
- - **Foydalanuvchi** (_User_)
- - **Autentifikatsiya serveri** (_Authentication server_)
- - **Himoyalangan resurslar** (_Protected resources_)
+
+- **Foydalanuvchi** (_User_)
+- **Autentifikatsiya serveri** (_Authentication server_)
+- **Himoyalangan resurslar** (_Protected resources_)
 
 Yuqoridagi atamalarni mavzuga endi kirib kelayotgan shaxs sifatida ko'rganingizda deyarli hech nimani tushunmasligingiz mumkin. Ularni birma-bir batafsil tushuntirib chiqishga urinishim ham mumkin, ammo bu yana ortiqcha chalkashlik va bosimga sabab bo'ladi deb o'ylayman. Buning o'rniga sizga o'zbek xalq ertaklaridan (_oldin eshitmaganingiz aniq!_) birini aytib berishni ma'qul ko'rdim.
 
 Bir bor ekan, bir yo'q ekan. Qadim o'tgan zamonda yashab o'tgan ajdodlari bilan faxrlanib yashaydigan o'zbek og'lonlaridan biri Farhod kerakli narsalar sotib olgani bozorga chiqibdi. Hammayam xato qiladi, shu jumladan Farhod ham. Buni qarangki, do'kondan olgan narsalariga yonida olib kelgan puli yetmabdi. Yaxshiyamki, bu do'konda nasiyaga savdo qilishar ekan. Farhod bundan xursand bo'lib sotuvchi so'ragan ma'lumotlarini (telefon raqami, ismi...) aytgach, ertaga qarzini yopishni va'da berib chiqib ketibdi. Va'dasining ustida chiqqan holda ertasi kuni qarzini olib chiqib beribdi. Xullas, bu kichkina muammo hal bo'ldi.
 
 ## Muammo:
-Farhod uyga qaytgach zerikkanidan do'konda sodir bo'lgan jarayonni chuqurroq tahlil qilmoqchi bo'ldi. Unda savollar paydo bo'la boshladi: 
- 1. "_Nimaga qarzimni yoniga ismim va telefon raqamimni yozib qo'yishdi?_"
- 2. "_Do'kon juda gavjum edi, aynan mening qancha qarzim borligini qanday bilishdi? Axir do'konchiga faqat ismim va telefon raqamimni aytdim-ku?_"
- 3. "_Demak mening o'rnimga istalgan odam borib ismim va telefon raqamimni aytsa to'lashi kerak bo'lgan summani mening nomimga qarz qilib qo'ysa bo'larkan-da?_"
+
+Farhod uyga qaytgach zerikkanidan do'konda sodir bo'lgan jarayonni chuqurroq tahlil qilmoqchi bo'ldi. Unda savollar paydo bo'la boshladi:
+
+1.  "_Nimaga qarzimni yoniga ismim va telefon raqamimni yozib qo'yishdi?_"
+2.  "_Do'kon juda gavjum edi, aynan mening qancha qarzim borligini qanday bilishdi? Axir do'konchiga faqat ismim va telefon raqamimni aytdim-ku?_"
+3.  "_Demak mening o'rnimga istalgan odam borib ismim va telefon raqamimni aytsa to'lashi kerak bo'lgan summani mening nomimga qarz qilib qo'ysa bo'larkan-da?_"
 
 > Odam zerikkanda nimalar qilmaydi... Lekin Farhod ancha foydali mashg'ulot topgan edi. Keling unda yuzaga kelgan savollarga biz javob berishga urinib ko'ramiz.
- 1. Bu savolning o'zidan ikkinchi savolga javob topishimiz mumkin - bizning ismimiz va telefon raqamiz orqali do'konga tashrif buyuruvchi minglab odamlar orasidan ajratib olishadi. Demak bizni aynan kimligimizni istalgan paytda aniqlash uchun do'kon biz haqimizdagi qandaydir takrorlanmas ma'lumotni saqlab qo'yishi kerak.
- 2. Do'konda biz ertaroq aytgan faqat bizga tegishli bo'lgan (ism va telefon) ma'lumotlar bor edi - aynan shu ma'lumotlar orqali sotuvchi biz haqimizdagi boshqa ma'lumotlarni ham - qancha qarzimiz bor ekanligini bilib oldi.
- 3. Ha, albatta! Bu Farhod e'tibor bergan muhim muammolardan biridir. Do'konda faqat bitta sotuvchi ishlagan taqdirdayam u har kuni do'konga kiradigan minglab xaridorlarni tanib qolishining iloji yo'q. Demak aynan shu kamchilik orqali do'konda joriy qilingan tizimga bo'ysungan holda uni "buzish" mumkin ekan.
+
+1.  Bu savolning o'zidan ikkinchi savolga javob topishimiz mumkin - bizning ismimiz va telefon raqamiz orqali do'konga tashrif buyuruvchi minglab odamlar orasidan ajratib olishadi. Demak bizni aynan kimligimizni istalgan paytda aniqlash uchun do'kon biz haqimizdagi qandaydir takrorlanmas ma'lumotni saqlab qo'yishi kerak.
+2.  Do'konda biz ertaroq aytgan faqat bizga tegishli bo'lgan (ism va telefon) ma'lumotlar bor edi - aynan shu ma'lumotlar orqali sotuvchi biz haqimizdagi boshqa ma'lumotlarni ham - qancha qarzimiz bor ekanligini bilib oldi.
+3.  Ha, albatta! Bu Farhod e'tibor bergan muhim muammolardan biridir. Do'konda faqat bitta sotuvchi ishlagan taqdirdayam u har kuni do'konga kiradigan minglab xaridorlarni tanib qolishining iloji yo'q. Demak aynan shu kamchilik orqali do'konda joriy qilingan tizimga bo'ysungan holda uni "buzish" mumkin ekan.
 
 Farhod ham xuddi bizdek o'yladi va albatta uchinchi javobda sanab o'tilgan "teshik"ni sezdi. Endi unda tanlash uchun kamida ikkita variant bor:
- - Do'konga borib boshqa bir inson nomiga qarzga xarid qilib yurish.
- - Do'kon ma'muriyatiga tizimdagi bu kamchilik haqida xabar berish va yechim taklif qilish.
+
+- Do'konga borib boshqa bir inson nomiga qarzga xarid qilib yurish.
+- Do'kon ma'muriyatiga tizimdagi bu kamchilik haqida xabar berish va yechim taklif qilish.
 
 Farhodning ota-onasi uni yoshligidan juda yaxshi tarbiya berishgan edi(barcha ertaklardagi kabi). Shu sabab Farhod 2-variantni tanladi. Endi Farhod yanada ko'proq o'ylab bu kamchilikni oldini olish uchun yechim topishi kerak edi.
+
 > Yechim nimaga kerak dersiz? Siz haqsiz! Farhod yechimni o'ylash uchun qadrli vaqti va miyasidagi hujayralarni sarflamasliki ham mumkin. Ammo... Darrov unutdingizmi? Axir Farhod zerikkan-ku! Yaxshiyam u zerikkan payti vaqtini har xil qiymatga ega bo'lmagan mashg'ulotlar(ijtimoiy tarmoq kavlash, o'yin o'ynash...)ga sarflamasdan o'zi uchun foydali deb bilgan ish qilishni ma'qul ko'radi.
 
 Farhod ko'p o'ylab o'tirmadi, xayoliga kelgan birinchi narsa do'kon mijozlarini shaxsini aniqlash tizimini yaxshilash bo'ldi. Hattoki maktab davrida "Computer Science" fanida o'tgan atamalardan birini ham eslab qo'ydi - "Authentication".
+
 > **Evrika!** Mana **autentifikatsiya** jarayoni nimaga kerak va qanday kelib chiqqan. Yuqorida tasvirlangan vaziyat bu jarayon orqali yechilishi mumkin bo'lgan milliardlab muammolardan bittasi hisoblanadi. Mayli, bu narsalarni endi aniq bilamiz. Demak postni shu joyida tugatishim mumkin. Stop ✋. Muammoga yechim nima bo'ldi deyayotgandirsiz? Xo'p mayli, qo'ymadingiz qo'ymadingiz. Axir hurmatingiz bor, taklif qilishim mumkin bo'lgan yechimniyam aytsam bo'ladi.
 
 Xullas Farhod o'ziga bo'lgan ishonchi kuchli bo'lgani uchun xayoliga kelgan yechimni o'z holicha qoldirmadi, uni sayqallab quyidagi ko'rinishga keltirdi:
 
 ## Yechim 1:
-Do'kon katta hajmda savdo olib boradi, demak unda 4 ta videokamera o'rnatishga ketgan narx do'konni bankrot bo'lishiga sabab bo'lmasa  kerak. Videokameralar orqali do'konga kirib chiqqan xaridorlarning barchasi yozuvga olinadi. Oldiniga hozirgi zamonda rivojlanayotgan Face ID tizimini ham integratsiya qilish va har bir xaridor shaxsini real vaqtda aniqlashni o'ylagandi. Lekin bu ortiqcha bo'ladi deb o'yladi. Birinchidan kuniga minglab, millionlab xaridor shaxsini aniqlash oz resurslarni talab qilmaydi. Eng kamida kompyuter tizimi ma'lumotlar ustida ish olib borishiga elektr energiyasi ketadi. Global energiya taqchilligi muammosi haqida TV ko'rsatuvlarda, yangiliklarda bong urishayotgan bir paytda energiyani isrof qilish juda ham aqlli amal emas. Bundan tashqari bizga hammaning ham shaxsi kerak bo'lmaydi har doim. Esingizdan chiqmasin - **biz nasiya tizimida autentifikatsiya jarayonini joriy qilmoqchimisiz**. Demak bizga faqat qarzga xarid qilmoqchi bo'lganlarning shaxsini aniqlashtirishning o'zi yetadi. 
+
+Do'kon katta hajmda savdo olib boradi, demak unda 4 ta videokamera o'rnatishga ketgan narx do'konni bankrot bo'lishiga sabab bo'lmasa kerak. Videokameralar orqali do'konga kirib chiqqan xaridorlarning barchasi yozuvga olinadi. Oldiniga hozirgi zamonda rivojlanayotgan Face ID tizimini ham integratsiya qilish va har bir xaridor shaxsini real vaqtda aniqlashni o'ylagandi. Lekin bu ortiqcha bo'ladi deb o'yladi. Birinchidan kuniga minglab, millionlab xaridor shaxsini aniqlash oz resurslarni talab qilmaydi. Eng kamida kompyuter tizimi ma'lumotlar ustida ish olib borishiga elektr energiyasi ketadi. Global energiya taqchilligi muammosi haqida TV ko'rsatuvlarda, yangiliklarda bong urishayotgan bir paytda energiyani isrof qilish juda ham aqlli amal emas. Bundan tashqari bizga hammaning ham shaxsi kerak bo'lmaydi har doim. Esingizdan chiqmasin - **biz nasiya tizimida autentifikatsiya jarayonini joriy qilmoqchimisiz**. Demak bizga faqat qarzga xarid qilmoqchi bo'lganlarning shaxsini aniqlashtirishning o'zi yetadi.
+
 > Akhmad aka Kadirov telegram kanali kuzatuvchisi sifatida yuqoridagi yechim trash 🗑 ekanini qo'rqmay ayta olaman.
 
 ## Yechim 2:
+
 Yana bir marta eslataman. Bu safar faqat biz yechim izlayotgan muammoni emas, postning eng boshida yozgan ba'zi jumlalarniyam.
 Bizni holatda:
- - **Foydalanuvchi** - do'konga tashrif buyurgan va qarzga xarid qilmoqchi bo'lgan xaridor.
- - **Autentifikatsiya serveri** - do'konda o'rnatilgan ichki kompyuter tizimi, u orqali xaridorlar va qarz evaziga qilingan xaridlar haqidagi ma'lumotlar ma'lumotlar omborida saqlanadi.
- - **Himoyalangan resurslar** - buni hamma foydalanuvchilar ham foydalana olmaydigan imkoniyatlar deb tushunish mumkin. Do'kon misolida hamma xaridorlar ham foydalana olmaydigan imkoniyat bo'lsa nasiyaga savdo qilishdir.
-Endi jarayon borishini tahlil qilamiz:
+
+- **Foydalanuvchi** - do'konga tashrif buyurgan va qarzga xarid qilmoqchi bo'lgan xaridor.
+- **Autentifikatsiya serveri** - do'konda o'rnatilgan ichki kompyuter tizimi, u orqali xaridorlar va qarz evaziga qilingan xaridlar haqidagi ma'lumotlar ma'lumotlar omborida saqlanadi.
+- **Himoyalangan resurslar** - buni hamma foydalanuvchilar ham foydalana olmaydigan imkoniyatlar deb tushunish mumkin. Do'kon misolida hamma xaridorlar ham foydalana olmaydigan imkoniyat bo'lsa nasiyaga savdo qilishdir.
+  Endi jarayon borishini tahlil qilamiz:
+
 1.
- - Xaridor do'konga kiradi.
- - O'ziga kerakli narsani pulini to'lab xarid qiladi.
- - Xaridor do'kondan chiqib ketadi.
-To'xtang... Fikringizga qo'shilaman! Jarayonning bu tarzda kechishining bizning yechimga umuman aloqasi yo'q.
-Demak keyingi bo'lishi mumkin bo'lgan holatga o'tamiz 👇
+
+- Xaridor do'konga kiradi.
+- O'ziga kerakli narsani pulini to'lab xarid qiladi.
+- Xaridor do'kondan chiqib ketadi.
+  To'xtang... Fikringizga qo'shilaman! Jarayonning bu tarzda kechishining bizning yechimga umuman aloqasi yo'q.
+  Demak keyingi bo'lishi mumkin bo'lgan holatga o'tamiz 👇
+
 2.
- - Xaridor do'konga kiradi.
- - Xarid qilmoqchi bo'lgan mahsulotlarni tanlab sotuvchi yoniga boradi.
- - Mahsulotlar narxi rejalashtirib yonida olib chiqqan puldan ko'p ekanini ko'radi, ammo bu mahsulotlar unga ayni paytda juda zarur!
- - Sotuvchidan nasiyaga savdo qilish yoki qilmasliklarini so'raydi.
- - Sotuvchi uning kayfiyatini tushirmay qarzga xarid qilishi mumkinligini aytadi va bir ikkita savol so'raydi (xuddi nom va telefon raqam so'ragandek)
- - Birinchidan, xaridorda do'konning maxsus kartasi bormi yo'qmi so'raydi.
+
+- Xaridor do'konga kiradi.
+- Xarid qilmoqchi bo'lgan mahsulotlarni tanlab sotuvchi yoniga boradi.
+- Mahsulotlar narxi rejalashtirib yonida olib chiqqan puldan ko'p ekanini ko'radi, ammo bu mahsulotlar unga ayni paytda juda zarur!
+- Sotuvchidan nasiyaga savdo qilish yoki qilmasliklarini so'raydi.
+- Sotuvchi uning kayfiyatini tushirmay qarzga xarid qilishi mumkinligini aytadi va bir ikkita savol so'raydi (xuddi nom va telefon raqam so'ragandek)
+- Birinchidan, xaridorda do'konning maxsus kartasi bormi yo'qmi so'raydi.
 
 > Do'konning maxsus kartasi haqida eshitib hayron bo'lmang, mustahkamroq tizim uchun yaxshiroq narsa o'ylashga erindim.
- 
- - Agar xaridorda karta yo'q bo'lsa, sotuvchi unga karta olishni taklif qiladi
-  - Xaridorga nasiya shartlarini tushuntiradi (buni qonuniy jihatdan muhim deb bilaman).
-  - Xaridor roziligi olingach, sotuvchi uning nomini so'raydi, o'rnatilgan kamera orqali fotosuratini saqlaydi va telefon raqamini so'raydi.
-  - (Ixtiyoriy) Ertaga xaridor kelmay qolib, do'kon zarar ko'rmasliki uchun telefon raqamiga qo'ng'iroq qilib tekshirib ko'rishi ham mumkin.
-  - Sotuvchi ma'lumotlar to'g'ri va to'liq ekanligiga ishonch hosil qilgach ularni ma'lumotlar omboriga qo'shib qo'yadi (albatta kompyuter orqali)
-  - Sotuvchi maxsus kartaga xaridor haqida takrorlanmas ma'lumotni tushirib (ma'lumotlar omboridagi ID bo'lishi mumkin) xaridorga taqdim etadi
 
- - Agar xaridorda karta mavjud bo'lsa, uni sotuvchiga beradi.
-  - Sotuvchi karta orqali ichki kompyuter tizimidan karta egasi ma'lumotlarini topadi
- 
- - Sotuvchi kompyuter orqali xaridorning qarzi haqida ma'lumotni tizimga kiritadi va bu haqida xaridorga xabar beradi
- - Xaridor endi bemalol chiqib ketishi mumkin (albatta kartasi bilan).
+- Agar xaridorda karta yo'q bo'lsa, sotuvchi unga karta olishni taklif qiladi
+- Xaridorga nasiya shartlarini tushuntiradi (buni qonuniy jihatdan muhim deb bilaman).
+- Xaridor roziligi olingach, sotuvchi uning nomini so'raydi, o'rnatilgan kamera orqali fotosuratini saqlaydi va telefon raqamini so'raydi.
+- (Ixtiyoriy) Ertaga xaridor kelmay qolib, do'kon zarar ko'rmasliki uchun telefon raqamiga qo'ng'iroq qilib tekshirib ko'rishi ham mumkin.
+- Sotuvchi ma'lumotlar to'g'ri va to'liq ekanligiga ishonch hosil qilgach ularni ma'lumotlar omboriga qo'shib qo'yadi (albatta kompyuter orqali)
+- Sotuvchi maxsus kartaga xaridor haqida takrorlanmas ma'lumotni tushirib (ma'lumotlar omboridagi ID bo'lishi mumkin) xaridorga taqdim etadi
 
-Ko'rib turganingizdek, ikkinchi yechim ko'proq boshqarish imkoniga ega. Garchi maxsus karta kabi xaridorlarga beriladigan "credential"(ishonchnoma deb tarjima qilishingiz mumkin ekan)larni ishlab chiqarish mablag' talab qilsa-da, uning evaziga erishiladigan natija - yuqorida tasvirlaganimiz kabi "teshik"ka ega bo'lmagan nasiya tizimi do'konni ko'proq zarardan saqlab qoladi. Bundan tashqari xaridorlar maxsus kartasidan faqat nasiya berish jarayonida identifikatsiya vositasi sifatida emas, balkim do'konda xaridor balansini shakllantirish va elektron to'lov tizimlarini joriy qilishdayam foydalansa bo'ladi. 
+- Agar xaridorda karta mavjud bo'lsa, uni sotuvchiga beradi.
+- Sotuvchi karta orqali ichki kompyuter tizimidan karta egasi ma'lumotlarini topadi
+
+- Sotuvchi kompyuter orqali xaridorning qarzi haqida ma'lumotni tizimga kiritadi va bu haqida xaridorga xabar beradi
+- Xaridor endi bemalol chiqib ketishi mumkin (albatta kartasi bilan).
+
+Ko'rib turganingizdek, ikkinchi yechim ko'proq boshqarish imkoniga ega. Garchi maxsus karta kabi xaridorlarga beriladigan "credential"(ishonchnoma deb tarjima qilishingiz mumkin ekan)larni ishlab chiqarish mablag' talab qilsa-da, uning evaziga erishiladigan natija - yuqorida tasvirlaganimiz kabi "teshik"ka ega bo'lmagan nasiya tizimi do'konni ko'proq zarardan saqlab qoladi. Bundan tashqari xaridorlar maxsus kartasidan faqat nasiya berish jarayonida identifikatsiya vositasi sifatida emas, balkim do'konda xaridor balansini shakllantirish va elektron to'lov tizimlarini joriy qilishdayam foydalansa bo'ladi.
 
 ## Xulosa
+
 Ertakimiz bosh qahramoni Farhod bilan bo'lib o'tgan kechinmalardan shuni xulosa qilib aytishimiz mumkinki, hayotda ota-onamiz bergan tarbiyani hurmat qilgan holda unga tayanib yashashimiz nafaqat bizning, balkim boshqalarning ham manfaatiga xizmat qiladi.
+
 > O'ylab ko'ring, agar Farhod boshqa variantni tanlaganida bu post yozilmasligi va boshqalar ham autentifikatsiya haqida o'zbek tilidagi manbaadan foydalana olmas edilar...
 
 ✍️ _Muallifdan:_
+
 > Post davomida yo'l qo'ygan imlo yoki boshqa turdagi xatolarim bo'lsa, bular uchun uzr so'rayman va sizlardan fikr va mulohazalar, kamchiliklarimga tanqidlar kutib qolaman. Qimmatli vaqtingizni bu postni o'qish uchun ajratganingiz uchun minnatdorman va bundan o'zingizga kerakli nimadir oldingiz deb umid qilaman.
