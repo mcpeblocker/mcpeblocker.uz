@@ -51,7 +51,7 @@ export default function Intro() {
             className="introText inline-block"
             style={{ opacity: opacityForBlock(progress, 2) }}
           >
-            I&apos;m passionate about pixel perfect UI and secured server implementation.
+            I like sharing positivity and knowledge with others.
           </span>
         </div>
       </div>
