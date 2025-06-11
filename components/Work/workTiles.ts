@@ -28,7 +28,7 @@ export const workTiles: WorkTile[] = [
     },
   },
   {
-    description: "I'm learning within",
+    description: "I'm exploring within",
     title: 'the startup world',
     image: {
       src: '/static/images/project/guardian-angel.png',
@@ -38,11 +38,20 @@ export const workTiles: WorkTile[] = [
   },
   {
     description: "I'm contributing to",
-    title: 'teambl',
+    title: 'teambl - project network',
     image: {
       src: '/static/images/project/teambl.webp',
       width: 500,
       height: 1024,
+    },
+  },
+  {
+    description: "and of course, I'm always",
+    title: 'reading and learning',
+    image: {
+      src: '/static/images/books-read.png',
+      width: 780,
+      height: 788,
     },
   },
 ]
