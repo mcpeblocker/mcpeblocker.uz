@@ -28,6 +28,7 @@ export const Blog = defineDocumentType(() => ({
     summary: { type: 'string' },
     images: { type: 'list', of: { type: 'string' } },
     author: { type: 'string', required: true },
+    authorUrl: { type: 'string' },
     layout: { type: 'string' },
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },

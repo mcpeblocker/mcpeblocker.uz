@@ -6,6 +6,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { CoreContent } from '@/lib/utils/contentlayer'
 import type { Authors, Blog } from 'contentlayer/generated'
 import { ReactNode } from 'react'
+import Link from 'next/link'
 import Image from '../components/Image'
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export default function PostLayout({ content, authorDetails, children }: Props) {
-  const { slug, date, title, images, author, readingTime } = content
+  const { slug, date, title, images, author, authorUrl, readingTime } = content
 
   return (
     <>
@@ -52,12 +53,19 @@ export default function PostLayout({ content, authorDetails, children }: Props) 
                 <div className="relative">
                   <dt className="sr-only">Published on</dt>
                   <dd className="flex justify-between text-base font-medium leading-6 text-white">
-                    <time dateTime={date}>
-                      {`${author} / ${new Date(date).toLocaleDateString(
-                        siteMetadata.locale,
-                        postDateTemplate
-                      )}`}
-                    </time>
+                    <div>
+                      <Link
+                        href={authorUrl ?? siteMetadata.siteUrl}
+                        target="_blank"
+                        rel="author noreferrer"
+                      >
+                        {author}
+                      </Link>
+                      <span aria-hidden="true"> / </span>
+                      <time dateTime={date}>
+                        {new Date(date).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
+                      </time>
+                    </div>
                     <span>{readingTime.text}</span>
                   </dd>
                 </div>
