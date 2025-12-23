@@ -1,0 +1,53 @@
+---
+title: 'Programming Languages for Quantum Computing (SILQ, Qiskit)'
+date: '2025-12-23'
+tags: ['Quantum Computing', 'Journaling', 'PL']
+draft: false
+author: 'Alisher Ortiqov'
+authorUrl: https://t.me/alisherortiqov
+summary: "Getting into quantum computing through Qiskit made me feel both excited and overwhelmed. While Python-based frameworks make experimentation accessible, they also expose a lot of quantum “plumbing” that quickly steepens the learning curve. In this post, I share why discovering Silq—a quantum-native programming language from ETH Zurich—felt like a turning point for me. By comparing a simple controlled-Hadamard gate in Qiskit and Silq, I explain how Silq’s familiar syntax and built-in guarantees make quantum programs feel more intuitive and safer to write. I also reflect on Silq’s current limitations and why I see an opportunity to contribute, combining my background in programming languages with my growing interest in quantum computing."
+---
+
+Ever wondered how people ended up with popular programming languages like Python, JavaScript, Rust, C? Well, they must have started somewhere. I suppose they started pretty small, and with motivation. C being the foundation for most and dinosaur among the counted ones I think its motivation was to enable customizing programmable computer systems. Meaning you get a bunch of hardware and toy around with the software yourself, not just comply with the programs they've included in the hardware but extend them. Well, quantum computing may also be on that stage right now. We have some hardware available, although considerably expensive and on limited-scale, and we have certain ways of interacting with that hardware. One of those ways is Qiskit - which actually got me hooked up in Quantum Computing and more importantly gave me hope that I can understand and play with all that fancy-sounding systems. But Qiskit is a framework, for Python programming language, that is. While it's good for traditional programmers to easily plug in the qiskit to their coding environment and quickly start experimenting with it, it also comes with disadvantages - like the fact that you will be required a certain level of knowledge in the field of quantum computing. And the learning curve appears to be really steep - often forcing you to start from the foundations like Linear Algebra if you really want to try novel experiments. Besides, having to comply with the python under the hood, Qiskit poses a challenge as you try to make it abstract. Well then, what if Quantum Computers had their own programming language? That would allow hiding the common abstractions, optimizations under the skin of language compiler/interpreter just like Python did it for classical computing. Furthermore granting that it's intuitive enough for traditional software engineers, it would enable more flow of talents to comfortable experiment with the hardware available. When I thought of this I naturally admired my own genius - for discovering such a fresh angle where I can make contribution of my own. But guess what? People have thought of that before me, I'm not the first one. It's not yet popular and well-known but apparently there are well-known university labs already researching or developing such programming languages for quantum computing. One of them being ["SILQ"](https://silq.ethz.ch/overview) maintained by [SRILab](https://www.sri.inf.ethz.ch/research/) at ETH Zurich. I am simply amazed by their effort to make that language feel like one of our own classical programming languages and yet use it for quantum computing. To feel the difference in intuition let's see a 'match' between Qiskit and SILQ.
+
+Here's a simple and common Controlled-Hadamard gate applied on two qubits: 
+[Controlled Hadamard circuit](/static/blog/controlled-hadamard-circuit.png)
+
+q_0: ──■──
+
+       │
+       
+q_1: ──H──
+
+
+The code below produces this circuit implementation using Qiskit library in Python:
+```Python
+from qiskit import QuantumCircuit
+
+# Create a 2-qubit circuit
+qc = QuantumCircuit(2)
+
+# Assume:
+# qubit 0 -> x (control)
+# qubit 1 -> y (target)
+
+qc.ch(0, 1)
+
+# Optional: draw the circuit
+print(qc.draw())
+```
+
+The same circuit can be produced with the below code if you use SILQ:
+```SILQ
+if x {     // controlled on x,
+  y:=H(y); // apply H to y
+}
+```
+
+Now, which one feels more familiar? As a long-standing (I guess) web developer I prefer the second one because it's much more similar to what we already have. But besides this simple example and emotional reasoning we should notice how SILQ is handling the abstractions of having to keep track of each qubit - you may call it [Uncomputation](https://en.wikipedia.org/wiki/Uncomputation) if you prefer, though I'm not sure if that's the correct term. The point is that SILQ is doing the 'dirty' work for us such as handling the ancilla qubits, complying with No-Cloning theorem, allowing linearity by construction and so on. We can see it more clearly if we go beyond the 'Hello World!' of quantum computing and take a look at Qiskit vs SILQ or [Q# vs SILQ](https://silq.ethz.ch/comparison) for coding quantum algorithms such as [Grover's Search Algorithm](https://en.wikipedia.org/wiki/Grover%27s_algorithm). You may refer to example implementation given on [SILQ website](https://silq.ethz.ch/overview#:~:text=a%20circuit%20yields-,Grover%27s%20Algorithm%20in%20Silq,-We%20illustrate%20Silq).
+
+And yet SILQ does not lack drawbacks of its own - major one being very limited user-base and community to develop it further which stems out from the fact that it gives up on relying on Python like Qiskit does.
+
+It's exactly this area that I see an opportunity myself - I can use my [Programming Language course](https://plrg.kaist.ac.kr/lectures/cs320-fall-2024) knowledge to (at least try to) contribute by my own. I can try to provide example scripts in SILQ, try to make tutorials as blog posts, publish packages to be used in it and so on. I guess this is what I'll be doing from now on - stitching the quantum computing with our beloved traditional programming languages all the while applying and extending my Programming Languages knowledge.
+
+Stay tuned if you wanna see what I'll be publishing next!
