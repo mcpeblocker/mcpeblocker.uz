@@ -1,0 +1,367 @@
+---
+title: 'IMB: A New Approach to Bot Development'
+date: '2026-01-22'
+tags: ['Bot Development', 'Programming Languages', 'Rust']
+draft: false
+author: 'Alisher Ortiqov'
+authorUrl: https://t.me/alisherortiqov
+summary: 'IMB is a new approach to bot development that addresses the common issues of complex dependencies, large package sizes, and platform lock-in by providing a simple, platform-agnostic language for creating bots.'
+---
+
+## Table of Contents
+
+<TOCInline toc={props.toc} exclude="Table of Contents" toHeading={2} />
+
+# IMB: A New Approach to Bot Development
+
+## Introduction
+
+There are many libraries available for creating Telegram bots - Grammy, Telegraf, python-telegram-bot, and others. But they all share the same problems: complex dependencies, huge node_modules folders, and platform lock-in. I created a new language to solve these problems - **IMB (I Make Bot)**.
+
+IMB is a simple, platform-agnostic bot creation language. Write once, use on any platform.
+
+## Why IMB?
+
+### Traditional Approach: Grammy/Telegraf
+
+```javascript
+// node_modules: 180 MB
+// package.json, tsconfig.json, .env...
+import { Bot } from 'grammy'
+
+const bot = new Bot('YOUR_BOT_TOKEN')
+
+bot.command('start', (ctx) => ctx.reply('Hello!'))
+bot.command('help', (ctx) => ctx.reply('Commands...'))
+
+bot.start()
+```
+
+**Problems:**
+
+- 📦 Large size (node_modules 50-200 MB)
+- 🔄 Platform lock-in (Telegram → Grammy, Discord → Discord.js)
+- 🛠️ Complex setup (dependencies, build tools)
+- 🔧 Constant maintenance (breaking changes, updates)
+
+### IMB Approach
+
+```imb
+# bot.imb - only 2 KB!
+
+on /start {
+    reply "Hello! 👋"
+}
+
+on /help {
+    reply "Available commands:\n/start\n/help"
+}
+```
+
+**Advantages:**
+
+- ⚡ Zero dependencies
+- 🎯 2KB file size
+- 🔄 Platform agnostic (Telegram, Discord, Slack...)
+- 📦 Single binary (compiler + runtime + adapters)
+- 🚀 Learn in 5 minutes
+
+## How It Works?
+
+### Architecture
+
+IMB consists of 3 parts:
+
+1. **Compiler** - Compiles .imb files to IR (Intermediate Representation)
+2. **Runtime** - Stateless event dispatch engine
+3. **Adapters** - Platform-specific integration (Telegram, Discord, etc.)
+
+```
+┌─────────────┐
+│  bot.imb    │  ← Bot code (2KB)
+└──────┬──────┘
+       │ compile
+       ↓
+┌─────────────┐
+│ Bot IR      │  ← Intermediate Representation
+└──────┬──────┘
+       │ runtime
+       ↓
+┌─────────────┐
+│ Adapters    │  ← Telegram, Discord, etc.
+└─────────────┘
+```
+
+### Syntax
+
+IMB syntax is very simple. Only 2 main constructs:
+
+#### 1. Event Handlers
+
+```imb
+on /start {
+    reply "Welcome!"
+}
+
+on /help {
+    reply "Help: /start, /help, /about"
+}
+```
+
+#### 2. Responses
+
+```imb
+on /about {
+    reply "This bot is built with IMB."
+    reply "Learn more: mcpeblocker.uz"
+}
+```
+
+### Running
+
+```bash
+# Create config
+cat > imb-conf.ini << EOF
+[telegram]
+bot_token=YOUR_BOT_TOKEN
+EOF
+
+# Run the bot
+imb run bot.imb --adapter telegram
+```
+
+That's it! No node_modules, no package.json, no build tools.
+
+## Technical Details
+
+### Written in Rust
+
+IMB is written in Rust programming language. This provides:
+
+- ⚡ Speed and efficiency
+- 🔒 Memory safety
+- 📦 Single binary (dependencies statically compiled)
+- 🎯 Cross-platform
+
+### Stateless Runtime
+
+The runtime is stateless - meaning:
+
+- Each event is processed independently
+- Session state is managed by the adapter
+- Easy scaling (horizontal scaling)
+- Minimal memory footprint
+
+### Platform Adapters
+
+Supporting multiple platforms through the adapter pattern:
+
+```rust
+pub trait Adapter {
+    async fn start(self: Box<Self>) -> Result<(), String>;
+}
+
+pub struct TelegramAdapter { /* ... */ }
+pub struct DiscordAdapter { /* ... */ }  // Coming soon
+pub struct SlackAdapter { /* ... */ }    // Coming soon
+```
+
+## Interactive Playground
+
+I created an interactive playground to test bot code in the browser:
+
+[🔗 **imb.mcpeblocker.uz/playground**](https://imb.mcpeblocker.uz/playground)
+
+### Features:
+
+1. **CodeMirror Editor** - With syntax highlighting
+2. **Real-time Testing** - Test with real Telegram bots
+3. **Template System** - Hello World, FAQ Bot, Command List
+4. **Live Console** - Bot events displayed in real-time
+5. **Download** - Download bot as .imb file
+
+### How It Works?
+
+The playground backend uses Node.js API routes to spawn the IMB binary:
+
+```typescript
+// Next.js API Route
+const imbProcess = spawn('imb', ['run', 'bot.imb', '--adapter', 'telegram'])
+
+// Real-time logs via Server-Sent Events
+imbProcess.stdout.on('data', (data) => {
+  // BOT_EVENT|RECEIVED|/start
+  // BOT_EVENT|REPLY|Hello!
+  clients.write(`data: ${JSON.stringify({ type: 'user', message })}\n\n`)
+})
+```
+
+The user:
+
+1. Enters a Telegram bot token
+2. Writes IMB code or selects a template
+3. Clicks the "Start Bot" button
+4. Bot starts running
+5. Sends a message to the bot on Telegram
+6. Sees it in real-time in the playground console!
+
+## Current Status and Future Plans
+
+### ✅ Ready
+
+- Rust compiler and runtime
+- Telegram adapter (basic features)
+- CLI tool (`imb run`)
+- Interactive playground
+- Basic Documentation
+
+### 🚧 In Progress
+
+- **Telegram adapter** - More features:
+
+  - Inline buttons
+  - Media (photo, video, document)
+  - Callback queries
+  - Inline mode
+  - Payments API
+
+- **Discord adapter** - Coming soon
+- **Slack adapter** - Coming soon
+- **State management** - Variables and persistence
+- **Conditionals** - if/else constructs
+- **Functions** - For code reuse
+
+### 💡 Future Plans
+
+1. **More Syntax Features**
+
+   ```imb
+   # Variables
+   var counter = 0
+
+   on /count {
+       counter = counter + 1
+       reply "Count: " + counter
+   }
+
+   # Conditionals
+   on message {
+       if message.text == "hello" {
+           reply "Hi there!"
+       }
+   }
+   ```
+
+2. **Plugin System** - Custom adapters and extensions
+
+3. **VSCode Extension** - Syntax highlighting and IntelliSense
+
+4. **Package Manager** - Bot modules and libraries
+
+5. **Web Dashboard** - Web interface for managing bots
+
+## Try It!
+
+### In the Playground
+
+Try it now: [**imb.mcpeblocker.uz/playground**](https://imb.mcpeblocker.uz/playground)
+
+1. Create a bot on Telegram via [@BotFather](https://t.me/botfather)
+2. Get the token
+3. Go to the playground
+4. Enter the token and write code
+5. Click "Start Bot"
+6. Send a message to your bot on Telegram!
+
+### Download
+
+Download the IMB binary: [**imb.mcpeblocker.uz/download**](https://imb.mcpeblocker.uz/download)
+
+```bash
+# For Linux
+wget https://imb.mcpeblocker.uz/imb
+chmod +x imb
+sudo mv imb /usr/local/bin/
+
+# Create a bot
+cat > mybot.imb << 'EOF'
+on /start {
+    reply "Hello! I'm your bot 🤖"
+}
+EOF
+
+# Run it
+imb run mybot.imb --adapter telegram
+```
+
+## Contributing
+
+IMB is still in development. If you know Rust or are interested - contribute!
+
+**How you can help:**
+
+1. **Add features to Telegram adapter**
+
+   - Inline buttons
+   - Media support
+   - Callback queries
+
+2. **Write new adapters**
+
+   - Discord
+   - Slack
+   - WhatsApp
+
+3. **Add features to compiler**
+
+   - Variables
+   - Conditionals
+   - Functions
+
+4. **Improve documentation**
+
+5. **Find and fix bugs**
+
+If you're interested, contact me - I'll give you access to the private GitHub repo.
+
+**Contact:**
+
+- Website: mcpeblocker.uz
+- Telegram: @mcpeblocker
+
+## Conclusion
+
+IMB is a new approach to bot development. Zero dependencies, simple syntax, and platform agnostic. Still in early stages, but the future looks bright.
+
+**Advantages:**
+
+- ⚡ Fast and efficient
+- 📦 Very small (2KB bot code, 9MB binary)
+- 🔄 Platform agnostic
+- 🎯 Easy to learn
+- 🚀 Fast development
+
+**Disadvantages:**
+
+- 🚧 Still few features
+- 📝 Limited documentation
+- 🔧 Active development (breaking changes possible)
+
+But the core idea is proven. For simple bots, this is an ideal solution.
+
+Try it out and send me your feedback!
+
+---
+
+**Useful links:**
+
+- 🎮 Playground: [imb.mcpeblocker.uz/playground](https://imb.mcpeblocker.uz/playground)
+- 💾 Download: [imb.mcpeblocker.uz/download](https://imb.mcpeblocker.uz/download)
+- 📚 Docs: [imb.mcpeblocker.uz/docs](https://imb.mcpeblocker.uz/docs)
+- 👨‍💻 Author: [mcpeblocker.uz](https://mcpeblocker.uz)
+
+---
+
+> Btw, IMB stands for I Make Bot :)
+
+_January 2025 • Alisher Ortiqov_

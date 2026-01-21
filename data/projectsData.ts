@@ -1,5 +1,12 @@
 const projectsData = [
   {
+    title: 'IMB (I Make Bot)',
+    description: `A lightweight language compiler and runtime for deploying chatbots for several platforms at once.`,
+    imgSrc: '/static/images/project/imb.png',
+    tag: ['rust', 'typescript', 'programming-language', 'chatbot'],
+    href: 'https://imb.mcpeblocker.uz',
+  },
+  {
     title: 'teambl',
     description: `Trust Based Project Social Network. Focusing on conneting university students with alumni and professionals from various fields to share experiences, advice, and opportunities.`,
     imgSrc: '/static/images/project/teambl-logo.webp',
