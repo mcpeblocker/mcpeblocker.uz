@@ -37,15 +37,6 @@ export const workTiles: WorkTile[] = [
     },
   },
   {
-    description: "I'm contributing to",
-    title: 'teambl - project network',
-    image: {
-      src: '/static/images/project/teambl.webp',
-      width: 500,
-      height: 1024,
-    },
-  },
-  {
     description: "and of course, I'm always",
     title: 'reading and learning',
     image: {

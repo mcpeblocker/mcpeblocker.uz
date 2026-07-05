@@ -20,13 +20,13 @@ const projectsData = [
     tag: ['python', 'flask', 'whisper', 'vosk', 'react-native', 'kotlin'],
     href: 'https://kgep.kaist.ac.kr/boards/view/board_gess_gallery_en/538',
   },
-  {
-    title: 'Pockets',
-    description: `Make it extremely easy for willing people to share expenses transparently and settle them.`,
-    imgSrc: '/static/images/project/pockets.png',
-    tag: ['typescript', 'nextjs', 'tailwindcss', 'supabase'],
-    href: 'https://pockets.uz',
-  },
+  // {
+  //   title: 'Pockets',
+  //   description: `Make it extremely easy for willing people to share expenses transparently and settle them.`,
+  //   imgSrc: '/static/images/project/pockets.png',
+  //   tag: ['typescript', 'nextjs', 'tailwindcss', 'supabase'],
+  //   href: 'https://pockets.uz',
+  // },
   {
     title: 'shashka-uz',
     description: `A beloved online multiplayer game project in which I applied my tech skills each time I learned something new - e.g. React, Node.js, Socket.io, and more.`,

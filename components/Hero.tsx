@@ -56,6 +56,14 @@ export default function Hero(): ReactElement {
                     Read more about me &rarr;
                   </Link>
                 </FadeRight>
+                <FadeRight duration={0.5} delay={1.1}>
+                  <Link
+                    href="/simple"
+                    className="w-max text-sm opacity-60 transition-opacity hover:opacity-100 sm:text-base"
+                  >
+                    Prefer plain text? View the simple version &rarr;
+                  </Link>
+                </FadeRight>
               </div>
               <div className="absolute bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2">
                 <div
