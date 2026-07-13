@@ -9,7 +9,8 @@ import { InferGetStaticPropsType } from 'next'
 const DEFAULT_LAYOUT = 'PostLayout'
 
 export async function getStaticPaths() {
-  const posts = sortedBlogPost(allBlogs)
+  // Archived posts are excluded from listings but stay reachable at their URL.
+  const posts = allBlogs.filter((p) => p.draft === false)
   return {
     paths: posts.map((p) => ({ params: { slug: p.slug.split('/') } })),
     fallback: false,
@@ -21,11 +22,11 @@ export const getStaticProps = async ({ params }: any) => {
   const sortedPosts = sortedBlogPost(allBlogs)
   const postIndex = sortedPosts.findIndex((p) => p.slug === slug)
   // TODO: Refactor this extraction of coreContent
-  const prevContent = sortedPosts[postIndex + 1] || null
+  const prevContent = (postIndex >= 0 && sortedPosts[postIndex + 1]) || null
   const prev = prevContent ? coreContent(prevContent) : null
-  const nextContent = sortedPosts[postIndex - 1] || null
+  const nextContent = (postIndex >= 0 && sortedPosts[postIndex - 1]) || null
   const next = nextContent ? coreContent(nextContent) : null
-  const post = sortedPosts.find((p) => p.slug === slug)
+  const post = allBlogs.find((p) => p.slug === slug)
   const author = post?.author || ['default']
 
   return {

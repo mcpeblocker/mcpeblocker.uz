@@ -5,6 +5,7 @@ import ListLayout from '@/layouts/ListLayout'
 import { allCoreContent, sortedBlogPost } from '@/lib/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
 import { InferGetStaticPropsType } from 'next'
+import Link from 'next/link'
 
 export const POSTS_PER_PAGE = 5
 
@@ -40,6 +41,14 @@ export default function Blog({
         pagination={pagination}
         title="Blog"
       />
+      <div className="flex justify-end py-4 text-sm">
+        <Link
+          href="/blog/archive"
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          Archive &rarr;
+        </Link>
+      </div>
     </LayoutWrapper>
   )
 }

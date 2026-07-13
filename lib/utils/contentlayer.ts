@@ -8,7 +8,15 @@ export function dateSortDesc(a: string, b: string) {
 }
 
 export function sortedBlogPost(allBlogs: Blog[]) {
-  return allBlogs.sort((a, b) => dateSortDesc(a.date, b.date)).filter((p) => p.draft === false)
+  return allBlogs
+    .sort((a, b) => dateSortDesc(a.date, b.date))
+    .filter((p) => p.draft === false && p.archived !== true)
+}
+
+export function archivedBlogPosts(allBlogs: Blog[]) {
+  return allBlogs
+    .sort((a, b) => dateSortDesc(a.date, b.date))
+    .filter((p) => p.draft === false && p.archived === true)
 }
 
 type ConvertUndefined<T> = OrNull<{
@@ -58,7 +66,7 @@ export async function getAllTags(allBlogs: Blog[]) {
   const tagCount: Record<string, number> = {}
   // Iterate through each post, putting all found tags into `tags`
   allBlogs.forEach((file) => {
-    if (file.tags && file.draft !== true) {
+    if (file.tags && file.draft !== true && file.archived !== true) {
       file.tags.forEach((tag) => {
         const formattedTag = kebabCase(tag)
         if (formattedTag in tagCount) {

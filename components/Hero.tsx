@@ -7,10 +7,12 @@ import FadeRight from './Animations/FadeRight'
 import FadeUp from './Animations/FadeUp'
 import { renderCanvas } from './renderCanvas'
 import { ScrollContext } from './ScrollObserver'
+import { useViewMode } from './ViewMode'
 
 export default function Hero(): ReactElement {
   const ref = useRef<HTMLHeadingElement>(null)
   const { scrollY } = useContext(ScrollContext)
+  const { setMode } = useViewMode()
 
   let progress = 0
   const { current: elContainer } = ref
@@ -57,12 +59,12 @@ export default function Hero(): ReactElement {
                   </Link>
                 </FadeRight>
                 <FadeRight duration={0.5} delay={1.1}>
-                  <Link
-                    href="/simple"
-                    className="w-max text-sm opacity-60 transition-opacity hover:opacity-100 sm:text-base"
+                  <button
+                    onClick={() => setMode('simple')}
+                    className="w-max text-left text-sm opacity-60 transition-opacity hover:opacity-100 sm:text-base"
                   >
-                    Prefer plain text? View the simple version &rarr;
-                  </Link>
+                    Prefer plain text? Switch to the simple version &rarr;
+                  </button>
                 </FadeRight>
               </div>
               <div className="absolute bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2">
