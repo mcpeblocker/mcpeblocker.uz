@@ -1,0 +1,98 @@
+---
+title: 'Memory Leak Hunting with MemLab'
+date: '2026-07-22'
+tags: ['Optimization', 'Web-Dev']
+draft: false
+author: 'Alisher Ortikov'
+authorUrl: https://t.me/alisherortiqov
+summary: 'How playing around saved ~29% in memory leaks across 35 interaction flows of a long-lived SPA; you can't fix what you can't measure.'
+---
+
+## Table of contents
+
+<TOCInline toc={props.toc} exclude="Table of contents" toHeading={2} indentDepth={2} />
+
+---
+
+# A 40MB Surprise, Found by Accident
+
+I wasn't hunting for memory leaks. I was clicking around the **Memory** and **Performance** tabs of Chrome DevTools out of curiosity, on a big single-page app I work on — a canvas-based visual editor, the kind of app that stays open in a tab all day instead of getting reloaded. Figma, Canva, Excalidraw, Google Docs — that category.
+
+I took a heap snapshot on the home screen: about 160MB. Opened one item, did something with it, navigated back, took another snapshot: about 200MB.
+
+40MB, from one interaction, and it never came back after leaving the page. That's not "the app is heavy." That's a leak.
+
+## Why bother
+
+Plenty of web apps get away with sloppy cleanup because the page reloads constantly — every route change is a fresh document, and whatever was left behind gets thrown out with the old one. A long-session editor doesn't get that free pass. It keeps its DOM and its JS heap alive for as long as the tab is open, precisely because reloading would throw away the user's in-progress work and re-pay a heavy startup cost. So every leaked interaction stacks on top of the previous one, for hours.
+
+And this kind of problem doesn't get cheaper by waiting. Steve McConnell makes the point in *Software Project Survival Guide*: the cost of fixing a defect grows with how long it sits undiscovered, because more and more code gets built on top of the broken pattern. The project is already big. If it doubles again before someone notices the leaks, the fix costs multiples of what it costs today.
+
+## Manual snapshots don't scale
+
+My 40MB number came from one interaction, tested by hand, once. Good enough to prove there's a problem; useless as a verification strategy. The app has dozens of meaningfully different interactions reachable from the main dashboard alone, and "open DevTools, snapshot, click around, snapshot, eyeball the diff" is not something I was going to repeat dozens of times — let alone re-repeat after every attempted fix.
+
+I needed the same test — snapshot, interact, go back, snapshot, diff — scripted and repeatable.
+
+## MemLab
+
+That search ended at [MemLab](https://facebook.github.io/memlab/), Facebook's open-source memory-leak detector. It drives a headless browser through a scripted interaction, snapshots the heap along the way, and reports what stayed retained after navigating back — the same manual test I'd just done, minus the manual part.
+
+I wrote scenarios for 37 distinct interactions, all directly reachable from the app's main dashboard, plus a small runner script to execute them as one batch and collect the results. Not full coverage — there are more interaction types buried in sub-pages — but 37 was a varied enough slice to take seriously.
+
+The measurement itself is more careful than my manual test was. MemLab doesn't take two snapshots, it takes five:
+
+```text
+for each scenario (repeated 3 times):
+    snapshot()   # 1. baseline, on the dashboard
+    action()
+    snapshot()   # 2. after the interaction
+    back()
+    snapshot()   # 3. back on the dashboard
+    action()
+    snapshot()   # 4. after the interaction, again
+    back()
+    snapshot()   # 5. final
+
+    leak = final - baseline
+```
+
+The first action/back round absorbs one-time setup costs — caches getting filled, modules getting lazily loaded — so those don't get counted as leaks. Only memory that's still climbing on the *second* round counts. On top of that I ran every scenario 3 times: enough repetition to rule out random noise, while keeping the full batch runtime realistic.
+
+One honest wrinkle: for the interaction my manual test measured at ~40MB, MemLab reported ~12MB. A headless scripted browser isn't a human session — timing, idle cycles, paint behavior all differ — so the absolute numbers disagree. But I had walked through all 37 scenarios by hand before automating them, and the flows MemLab flagged as leaking were the same ones I'd seen leak manually. The ruler changed; the ranking didn't.
+
+## Traces name classes, not causes
+
+MemLab's output (`memlab find-leaks`, `memlab trace`, and friends) tells you which scenario leaked, how much, and which objects are still being retained. Useful — and not enough. The objects in those traces were common building blocks used all over the system. When the same class is created and cleaned up correctly in a hundred places, a trace saying "an instance of this class leaked" doesn't tell you which of the hundred places forgot the cleanup, or why.
+
+Each flagged leak needed its own investigation to get from *what* leaked to *why*.
+
+## The loop: AI assistant + self-verification
+
+I worked through the leaks one by one with Claude Code. Two setup investments made that work:
+
+**A tracking spreadsheet.** Took me about half a day to build: baseline and leak size, per scenario, per run. Now I duplicate it each day and label the copy with the date, so improvement is a visible day-over-day trend instead of a number I vaguely remember.
+
+**Letting the assistant run MemLab itself.** I customized the runner script so the AI assistant could re-run it after each fix and read the fresh output directly. It could verify its own fix against real measurements instead of asserting that the change "should work" — and I could stop being the manual verification step in someone else's loop. Cheap to set up, and I think this is the actually valuable skill in the AI era: not prompting, but giving the assistant a feedback loop it can close on its own.
+
+With that in place I went after the worst offenders first, starting from the 12MB and 5MB scenarios. Both ended up cut roughly in half — down to about 6MB and 2.5MB — through root-cause fixes, not symptom patches.
+
+## The numbers
+
+Across the 35 scenarios that produced a measurable signal (2 of the 37 never showed a delta and were set aside), combined leaked memory went:
+
+- **135.5MB** baseline → **96.5MB** now
+- **~39MB** reclaimed
+- **~29% reduction**, in two days of iterating
+
+## What's left
+
+96.5MB of combined leak still exists, and I see no reason it can't be reduced further with more of the same process. This is a measured floor, not a finish line. The 37 scenarios also only cover the dashboard's direct interactions — sub-pages have their own flows that haven't been measured at all yet.
+
+## Three takeaways
+
+**You can't fix what you can't measure.** I'll admit the half day on the spreadsheet felt like procrastination while I was doing it — there were actual leaks sitting right there, and I was formatting cells. But it's the only reason I can write "~29%" in this post and mean it. Without the baseline recorded, every fix would have been "seems better?", and I know from experience how that goes: you fix three things, memory still climbs, and now you can't tell whether your fixes did nothing or whether you fixed three leaks and a fourth one is hiding the improvement. The spreadsheet plus the runner script turned every fix into a yes-or-no question with a number attached. Everything else in this post came out of that.
+
+**Working with an AI assistant is a skill.** Here's what it looks like in practice: before I customized the runner script, the assistant would make a change, explain very convincingly why the leak was now fixed, and be wrong about it often enough that I was re-running MemLab by hand after every change — I had become the verification step in my own assistant's loop, which is backwards. After the customization, it re-ran the scenarios itself, read the fresh traces, saw its fix hadn't moved the number, and kept digging without me in the middle. Same model, same prompts, completely different productivity. The difference wasn't the AI — it was whether I'd given it a way to know when it was wrong. If you can't set that up, an AI assistant doesn't add to your productivity; it subtracts, with confidence.
+
+**Let yourself have fun.** Nobody asked me to look into memory. No ticket, no bug report, no user complaint — the concern didn't exist until I went poking around DevTools tabs you don't normally open, just to see what they'd show me about my own app. That curiosity is the entire reason this post exists. And the counterfactual isn't "someone finds it eventually, no harm done": the project is already big, and by McConnell's cost curve these leaks would have been found at their most expensive — after another term of features built on top of the same broken teardown patterns, probably prompted by users complaining about a sluggish app instead of a quiet afternoon of poking around. An hour of undirected curiosity turned out to be worth more than most planned hours that week. I'm taking that as permission to keep playing.
