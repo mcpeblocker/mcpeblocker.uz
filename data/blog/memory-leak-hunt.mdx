@@ -26,7 +26,7 @@ I took a heap snapshot on the home screen: about 160MB. Opened one item, did som
 
 Plenty of web apps get away with sloppy cleanup because the page reloads constantly — every route change is a fresh document, and whatever was left behind gets thrown out with the old one. A long-session editor doesn't get that free pass. It keeps its DOM and its JS heap alive for as long as the tab is open, precisely because reloading would throw away the user's in-progress work and re-pay a heavy startup cost. So every leaked interaction stacks on top of the previous one, for hours.
 
-And this kind of problem doesn't get cheaper by waiting. Steve McConnell makes the point in *Software Project Survival Guide*: the cost of fixing a defect grows with how long it sits undiscovered, because more and more code gets built on top of the broken pattern. The project is already big. If it doubles again before someone notices the leaks, the fix costs multiples of what it costs today.
+And this kind of problem doesn't get cheaper by waiting. Steve McConnell makes the point in _Software Project Survival Guide_: the cost of fixing a defect grows with how long it sits undiscovered, because more and more code gets built on top of the broken pattern. The project is already big. If it doubles again before someone notices the leaks, the fix costs multiples of what it costs today.
 
 ## Manual snapshots don't scale
 
@@ -57,7 +57,7 @@ for each scenario (repeated 3 times):
     leak = final - baseline
 ```
 
-The first action/back round absorbs one-time setup costs — caches getting filled, modules getting lazily loaded — so those don't get counted as leaks. Only memory that's still climbing on the *second* round counts. On top of that I ran every scenario 3 times: enough repetition to rule out random noise, while keeping the full batch runtime realistic.
+The first action/back round absorbs one-time setup costs — caches getting filled, modules getting lazily loaded — so those don't get counted as leaks. Only memory that's still climbing on the _second_ round counts. On top of that I ran every scenario 3 times: enough repetition to rule out random noise, while keeping the full batch runtime realistic.
 
 One honest wrinkle: for the interaction my manual test measured at ~40MB, MemLab reported ~12MB. A headless scripted browser isn't a human session — timing, idle cycles, paint behavior all differ — so the absolute numbers disagree. But I had walked through all 37 scenarios by hand before automating them, and the flows MemLab flagged as leaking were the same ones I'd seen leak manually. The ruler changed; the ranking didn't.
 
@@ -65,7 +65,7 @@ One honest wrinkle: for the interaction my manual test measured at ~40MB, MemLab
 
 MemLab's output (`memlab find-leaks`, `memlab trace`, and friends) tells you which scenario leaked, how much, and which objects are still being retained. Useful — and not enough. The objects in those traces were common building blocks used all over the system. When the same class is created and cleaned up correctly in a hundred places, a trace saying "an instance of this class leaked" doesn't tell you which of the hundred places forgot the cleanup, or why.
 
-Each flagged leak needed its own investigation to get from *what* leaked to *why*.
+Each flagged leak needed its own investigation to get from _what_ leaked to _why_.
 
 ## The loop: AI assistant + self-verification
 
