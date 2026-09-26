@@ -4,6 +4,7 @@ import {
   commitFiles,
   Draft,
   DRAFTS_KEY,
+  gh,
   joinPost,
   load,
   newDraft,
@@ -74,18 +75,34 @@ const buildBody = (d: Draft, src: (id: string) => string) =>
     d.images[id] ? `(${src(id)})` : m
   )
 
-// Images the post shows, in order: pasted ones as 'img:<id>', others as their src.
-// Same pattern the site uses to pick the default link-preview image.
+const localId = (src?: string) => src?.match(/^img:([\w-]+)$/)?.[1]
+// Images the post actually shows, in order, once each: pasted ones as
+// 'img:<id>' (only if their data still exists), others as their src. Code
+// blocks don't count. Same rule the site uses for the default preview image.
 const postImages = (d: Draft) =>
   Array.from(
     new Set(
       Array.from(
-        d.body.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/g),
+        d.body
+          .replace(/```[\s\S]*?```/g, '')
+          .matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/g),
         (m) => m[1] ?? m[2]
       )
     )
-  )
-const localId = (src?: string) => src?.match(/^img:([\w-]+)$/)?.[1]
+  ).filter((src) => {
+    const id = localId(src)
+    return !id || d.images[id]
+  })
+// Drop pasted images the draft no longer references (deleted while drafting).
+// Only run on load/publish, never mid-session, so Ctrl+Z can bring one back.
+const pruneImages = (d: Draft): Draft => {
+  const keep = new Set([
+    ...Array.from(d.body.matchAll(IMG_RE), (m) => m[1]),
+    localId(d.thumbnail) ?? '',
+  ])
+  const images = Object.fromEntries(Object.entries(d.images).filter(([k]) => keep.has(k)))
+  return Object.keys(images).length === Object.keys(d.images).length ? d : { ...d, images }
+}
 // The site path an image ends up at ('' when a pasted image is missing).
 const publishedSrc = (d: Draft, slug: string, src = '') => {
   const id = localId(src)
@@ -260,7 +277,7 @@ export default function Write() {
 
   useEffect(() => {
     const saved = load<Record<string, Draft>>(DRAFTS_KEY, {})
-    for (const k in saved) saved[k] = migrate(saved[k])
+    for (const k in saved) saved[k] = pruneImages(migrate(saved[k]))
     const params = new URLSearchParams(location.search) // ?d=<draft id> | ?new
     const latest = Object.values(saved).sort((a, b) => b.updated - a.updated)[0]
     const d = saved[params.get('d') ?? ''] ?? (params.has('new') ? null : latest) ?? newDraft()
@@ -480,10 +497,13 @@ export default function Write() {
     setStatus('')
   }
 
-  // Link-preview image choices: auto, every image in the post, the current pick.
-  const thumbOptions = Array.from(new Set(['', ...postImages(d), d.thumbnail ?? '']))
-  const displaySrc = (src: string): string => {
-    if (!src) return displaySrc(postImages(d)[0] ?? siteMetadata.socialBanner)
+  // Link-preview choices: the images the post shows, plus an uploaded pick.
+  // The first image is the automatic default, so it doubles as "auto".
+  const shown = postImages(d)
+  const auto = shown[0] ?? siteMetadata.socialBanner
+  const thumbOptions = Array.from(new Set([auto, ...shown, d.thumbnail || auto]))
+  const chosen = d.thumbnail || auto
+  const displaySrc = (src: string) => {
     const imgId = localId(src)
     return imgId ? d.images[imgId] : src
   }
@@ -534,16 +554,34 @@ export default function Write() {
           content: d.images[imgId].split(',')[1],
           encoding: 'base64' as const,
         }))
+      const content = buildFile(d)
+      // Files in this post's image folders that the new version no longer
+      // references (removed images, a replaced thumbnail) go in the same commit.
+      const folders = [slug, d.origSlug].map((s) => s && `public/static/images/blog/${s}/`)
+      const { tree, truncated } = await gh(token, `/git/trees/${BRANCH}?recursive=1`)
+      const stale = truncated // incomplete listing: don't guess, delete nothing
+        ? []
+        : (tree as { path: string; type: string }[])
+            .filter((t) => t.type === 'blob' && folders.some((f) => f && t.path.startsWith(f)))
+            .map((t) => t.path)
+            .filter((p) => !content.includes(p.slice('public'.length)))
       const url = await commitFiles(
         token,
-        [...images, { path: filePath, content: buildFile(d), encoding: 'utf-8' }],
+        [...images, { path: filePath, content, encoding: 'utf-8' }],
         `${d.origSlug ? 'upd' : 'blog'}: ${d.title.trim()}`,
-        // slug changed while editing: the old file goes in the same commit
-        d.origSlug && !isUpdate ? [`data/blog/${d.origSlug}.mdx`] : []
+        [
+          ...stale,
+          // slug changed while editing: the old file goes in the same commit
+          ...(d.origSlug && !isUpdate ? [`data/blog/${d.origSlug}.mdx`] : []),
+        ]
       )
-      update({ publishedAt: Date.now(), origSlug: slug })
+      setDrafts((all) => ({
+        ...all,
+        [id]: pruneImages({ ...all[id], publishedAt: Date.now(), origSlug: slug }),
+      }))
       setStatus(
-        `Published. Live at ${siteMetadata.siteUrl}/blog/${slug} once Vercel deploys. ${url}`
+        `Published${stale.length ? `, removed ${stale.length} unused image(s)` : ''}. ` +
+          `Live at ${siteMetadata.siteUrl}/blog/${slug} once Vercel deploys. ${url}`
       )
     } catch (e) {
       setStatus(`Failed: ${(e as Error).message}`)
@@ -739,21 +777,22 @@ export default function Write() {
                 <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
                   {thumbOptions.map((src) => (
                     <button
-                      key={src || 'auto'}
+                      key={src}
                       type="button"
-                      title={src ? 'Use this image' : 'Auto: first image in the post'}
-                      onClick={() => update({ thumbnail: src })}
+                      title={src === auto ? 'Default: first image in the post' : 'Use this image'}
+                      // picking the default stores nothing, so it follows the post
+                      onClick={() => update({ thumbnail: src === auto ? '' : src })}
                       className={`relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border-2 transition ${
-                        (d.thumbnail ?? '') === src
+                        chosen === src
                           ? 'border-primary-500'
                           : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={displaySrc(src)} alt="" className="h-full w-full object-cover" />
-                      {!src && (
+                      {src === auto && (
                         <span className="absolute inset-x-0 bottom-0 bg-black/60 text-center text-xs text-white">
-                          Auto
+                          Default
                         </span>
                       )}
                     </button>

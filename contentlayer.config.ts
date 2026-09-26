@@ -18,9 +18,9 @@ const computedFields: ComputedFields = {
   ogImage: {
     type: 'string',
     resolve: (doc) => {
-      const m = doc.body.raw.match(
-        /!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/
-      )
+      const m = doc.body.raw
+        .replace(/```[\s\S]*?```/g, '')
+        .match(/!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/)
       return doc.thumbnail || doc.images?.[0] || m?.[1] || m?.[2] || ''
     },
   },
