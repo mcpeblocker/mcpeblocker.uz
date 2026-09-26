@@ -107,7 +107,8 @@ async function gh(token: string, path: string, init: RequestInit = {}) {
 async function commitFiles(
   token: string,
   files: { path: string; content: string; encoding: 'utf-8' | 'base64' }[],
-  message: string
+  message: string,
+  deletions: string[] = []
 ) {
   const post = (path: string, body: unknown) =>
     gh(token, path, { method: 'POST', body: JSON.stringify(body) })
@@ -118,7 +119,11 @@ async function commitFiles(
   )
   const tree = await post('/git/trees', {
     base_tree: parent.tree.sha,
-    tree: files.map((f, i) => ({ path: f.path, mode: '100644', type: 'blob', sha: blobs[i].sha })),
+    tree: [
+      ...files.map((f, i) => ({ path: f.path, mode: '100644', type: 'blob', sha: blobs[i].sha })),
+      // sha: null removes the path from base_tree
+      ...deletions.map((path) => ({ path, mode: '100644', type: 'blob', sha: null })),
+    ],
   })
   const commit = await post('/git/commits', { message, tree: tree.sha, parents: [ref.object.sha] })
   await gh(token, `/git/refs/heads/${BRANCH}`, {
@@ -164,6 +169,7 @@ export default function Write() {
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [storageError, setStorageError] = useState(false)
+  const [posts, setPosts] = useState<string[] | null>(null) // null = panel closed
   const [preview, setPreview] = useState<{
     Content?: ComponentType<Record<string, unknown>>
     error?: string
@@ -303,6 +309,38 @@ export default function Write() {
     }
   }
 
+  const togglePosts = async () => {
+    if (posts) return setPosts(null)
+    try {
+      const files: { name: string }[] = await gh(token, `/contents/data/blog?ref=${BRANCH}`)
+      setPosts(files.filter((f) => f.name.endsWith('.mdx')).map((f) => f.name.slice(0, -4)))
+    } catch (e) {
+      setStatus(`Failed: ${(e as Error).message}`)
+    }
+  }
+
+  const deletePost = async (slug: string) => {
+    if (!confirm(`Delete "${slug}" from the live site? (Recoverable only via git history.)`)) return
+    setBusy(true)
+    try {
+      setStatus(`Deleting ${slug}…`)
+      const { tree } = await gh(token, `/git/trees/${BRANCH}?recursive=1`)
+      const paths = (tree as { path: string; type: string }[])
+        .filter((t) => t.type === 'blob')
+        .map((t) => t.path)
+        .filter(
+          (p) => p === `data/blog/${slug}.mdx` || p.startsWith(`public/static/images/blog/${slug}/`)
+        )
+      const url = await commitFiles(token, [], `del: ${slug}`, paths)
+      setPosts((all) => all?.filter((s) => s !== slug) ?? null)
+      setStatus(`Deleted ${slug} (${paths.length} files). Gone once Vercel deploys. ${url}`)
+    } catch (e) {
+      setStatus(`Failed: ${(e as Error).message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sorted = Object.values(drafts).sort((a, b) => b.updated - a.updated)
   const field =
     'w-full rounded-md border border-gray-200 bg-transparent px-3 py-2 text-base focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700'
@@ -353,6 +391,9 @@ export default function Write() {
             Delete
           </button>
           <div className="ml-auto flex items-center gap-2">
+            <button className={btn} onClick={togglePosts}>
+              Posts
+            </button>
             <button
               className={btn}
               onClick={() => {
@@ -371,6 +412,30 @@ export default function Write() {
             </button>
           </div>
         </header>
+
+        {posts && (
+          <ul className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200 text-sm dark:divide-gray-800 dark:border-gray-800">
+            {posts.map((slug) => (
+              <li key={slug} className="flex items-center gap-2 px-3 py-2">
+                <a
+                  href={`/blog/${slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="min-w-0 flex-1 truncate hover:underline"
+                >
+                  {slug}
+                </a>
+                <button
+                  disabled={busy}
+                  onClick={() => deletePost(slug)}
+                  className="rounded-md px-2 py-1 text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {(status || storageError) && (
           <p className="mt-3 break-words rounded-md bg-gray-100 px-3 py-2 text-sm dark:bg-gray-900">
