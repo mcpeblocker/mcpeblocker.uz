@@ -34,6 +34,18 @@ export default function Footer() {
           <ul className="flex space-x-5 items-center cursor-pointer">
             <li>
               <a
+                href={siteMetadata.cv}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="CV (PDF)"
+                title="CV (PDF)"
+                className="block rounded border-2 border-current px-1 text-xs font-extrabold leading-4 tracking-wide"
+              >
+                CV
+              </a>
+            </li>
+            <li>
+              <a
                 href={siteMetadata.linkedin}
                 target="_blank"
                 rel="noreferrer"

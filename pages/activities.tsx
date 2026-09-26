@@ -1,4 +1,5 @@
 import AboutTabs from '@/components/AboutTabs'
+import ActivityTitle from '@/components/ActivityTitle'
 import LayoutWrapper from '@/components/LayoutWrapper'
 import { PageSEO } from '@/components/SEO'
 import activitiesData, {
@@ -248,18 +249,11 @@ const ActivityRow = ({
     </div>
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {activity.href ? (
-          <a
-            href={activity.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-gray-900 hover:text-primary-500 dark:text-gray-100"
-          >
-            {activity.title}
-          </a>
-        ) : (
-          <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.title}</span>
-        )}
+        <ActivityTitle
+          activity={activity}
+          className="font-semibold text-gray-900 dark:text-gray-100"
+          linkClassName="hover:text-primary-500"
+        />
         <span className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
           {categoryLabels[activity.category]}
         </span>

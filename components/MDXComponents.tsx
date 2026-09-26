@@ -6,6 +6,7 @@ import { useMDXComponent } from 'next-contentlayer/hooks'
 import Image from './Image'
 import CustomLink from './Link'
 import Pre from './Pre'
+import Timeline from './Timeline'
 import TOCInline from './TOCInline'
 
 interface MDXLayout {
@@ -27,6 +28,7 @@ const Wrapper = ({ layout, content, ...rest }: MDXLayout) => {
 export const MDXComponents: ComponentMap = {
   Image,
   TOCInline,
+  Timeline,
   a: CustomLink,
   pre: Pre,
   wrapper: Wrapper,

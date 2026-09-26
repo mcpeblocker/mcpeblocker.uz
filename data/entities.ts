@@ -58,6 +58,14 @@ const entities: Entity[] = [
     href: 'https://cstlab.org/',
   },
   {
+    id: 'genorobotics',
+    name: 'GenoRobotics',
+    kind: 'organization',
+    description:
+      'EPFL MAKE project building a modular biodiversity monitoring system: remote sensing, local sensing and eDNA analysis for scientists and conservationists.',
+    href: 'https://make.epfl.ch/projects/14/make-genorobotics-14',
+  },
+  {
     id: 'mit',
     name: 'MIT',
     kind: 'organization',
@@ -88,6 +96,21 @@ const entities: Entity[] = [
     description: 'Browser-based operating system for custom user workflows.',
   },
   { id: 'tezqur', name: 'TezQur', kind: 'project', href: 'https://tezqur.uz', project: 'TezQur' },
+  {
+    id: 'biodiversity',
+    name: 'Acoustic Biodiversity Monitoring',
+    kind: 'project',
+    aliases: ['AcousticBiodiversity', 'BiodiversityMonitoring'],
+    project: 'Acoustic Biodiversity Monitoring',
+  },
+  {
+    id: 'amuflow',
+    name: 'AmuFlow',
+    kind: 'project',
+    href: 'https://amuflow.org',
+    project: 'AmuFlow',
+  },
+  { id: 'gleamo', name: 'Gleamo', kind: 'project', href: 'https://gleamo.app', project: 'Gleamo' },
   {
     id: 'guardianangel',
     name: 'Guardian Angel',

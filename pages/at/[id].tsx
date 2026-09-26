@@ -1,3 +1,4 @@
+import ActivityTitle from '@/components/ActivityTitle'
 import Card from '@/components/Card'
 import CvEntries from '@/components/CvEntries'
 import LayoutWrapper from '@/components/LayoutWrapper'
@@ -106,18 +107,11 @@ export default function EntityPage({ id, posts }: InferGetStaticPropsType<typeof
                 <span className="shrink-0 text-sm text-gray-500 dark:text-gray-400 sm:w-40">
                   {formatPeriod(a)}
                 </span>
-                {a.href ? (
-                  <a
-                    href={a.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-900 hover:underline dark:text-gray-100"
-                  >
-                    {a.title}
-                  </a>
-                ) : (
-                  <span className="text-gray-900 dark:text-gray-100">{a.title}</span>
-                )}
+                <ActivityTitle
+                  activity={a}
+                  className="text-gray-900 dark:text-gray-100"
+                  linkClassName="hover:underline"
+                />
               </li>
             ))}
           </ul>

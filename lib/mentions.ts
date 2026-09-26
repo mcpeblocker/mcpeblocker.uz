@@ -22,7 +22,10 @@ export const mentionsIn = (markdown: string): string[] => {
 
 type TextNode = { type: 'text'; value: string }
 
-/** Remark plugin: `@KAIST` → link to /at/kaist. Unknown handles stay as text. */
+/**
+ * Remark plugin: `@KAIST` → link to /at/kaist. Unknown handles stay as text.
+ * The link shows the entity's name, so `@AcousticBiodiversity` reads nicely.
+ */
 export function remarkMentions() {
   return (tree: Parent) =>
     visit(tree, 'text', (node: TextNode, index: number | null, parent: Parent | null) => {
@@ -38,7 +41,7 @@ export function remarkMentions() {
           type: 'link',
           url: `/at/${entity.id}`,
           title: entity.name,
-          children: [{ type: 'text', value: m[1] }],
+          children: [{ type: 'text', value: entity.name }],
         })
         last = m.index + m[0].length
       }

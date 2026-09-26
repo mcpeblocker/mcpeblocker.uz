@@ -1,4 +1,6 @@
+import ActivityTitle from '@/components/ActivityTitle'
 import { PageSEO } from '@/components/SEO'
+import Timeline from '@/components/Timeline'
 import { useViewMode } from '@/components/ViewMode'
 import activitiesData, { activityCategories } from '@/data/activitiesData'
 import { education, experience } from '@/data/cvData'
@@ -36,7 +38,7 @@ const PlainAnchor = ({ href = '', children, ...rest }: AnchorHTMLAttributes<HTML
   )
 }
 
-const mdxComponents = { a: PlainAnchor }
+const mdxComponents = { a: PlainAnchor, Timeline }
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="mt-12">
@@ -59,6 +61,7 @@ export default function SimpleView() {
     { label: 'GitHub', href: siteMetadata.github },
     { label: 'LinkedIn', href: siteMetadata.linkedin },
     { label: 'Twitter', href: siteMetadata.twitter },
+    { label: 'CV (PDF)', href: siteMetadata.cv },
   ]
 
   return (
@@ -174,18 +177,11 @@ export default function SimpleView() {
                             {formatPeriod(activity)}
                           </span>
                           <div>
-                            {activity.href ? (
-                              <a
-                                href={activity.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-medium text-gray-900 hover:text-sky-700"
-                              >
-                                {activity.title}
-                              </a>
-                            ) : (
-                              <span className="font-medium text-gray-900">{activity.title}</span>
-                            )}
+                            <ActivityTitle
+                              activity={activity}
+                              className="font-medium text-gray-900"
+                              linkClassName="hover:text-sky-700"
+                            />
                             {activity.description && (
                               <p className="mt-0.5 text-sm text-gray-600">{activity.description}</p>
                             )}

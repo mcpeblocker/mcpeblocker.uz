@@ -11,6 +11,7 @@ const siteMetadata = {
   image: '/static/images/avatar.png',
   socialBanner: '/static/images/pikachu.jpg',
   email: 'mcpeblocker@gmail.com',
+  cv: '/static/Alisher_Ortikov_CV.pdf', // replace the file to update the CV everywhere
   github: 'https://github.com/mcpeblocker',
   twitter: 'https://twitter.com/mcpeblocker',
   facebook: 'https://facebook.com/mcpeblocker',

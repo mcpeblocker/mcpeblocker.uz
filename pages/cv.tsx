@@ -29,6 +29,14 @@ export default function Cv() {
           </Link>
           .
         </p>
+        <a
+          href={siteMetadata.cv}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:border-primary-500 hover:text-primary-700 dark:border-gray-700 dark:text-gray-300 dark:hover:text-primary-300"
+        >
+          Open the PDF version ↗
+        </a>
       </div>
       <section className="pb-10">
         <h2 className="mb-6 text-xl font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">

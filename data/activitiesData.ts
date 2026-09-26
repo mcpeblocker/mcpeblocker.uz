@@ -7,6 +7,8 @@ export type ActivityCategory =
   | 'software'
   | 'course'
   | 'certification'
+  | 'personal'
+  | 'learning'
 
 export const activityCategories: { key: ActivityCategory; label: string }[] = [
   { key: 'academic', label: 'Academic' },
@@ -17,6 +19,8 @@ export const activityCategories: { key: ActivityCategory; label: string }[] = [
   { key: 'software', label: 'Software Development' },
   { key: 'course', label: 'Course Projects' },
   { key: 'certification', label: 'Certifications' },
+  { key: 'personal', label: 'Personal' },
+  { key: 'learning', label: 'Self-learning' },
 ]
 
 export type ActivityDuration = 'one-time' | 'short' | 'long'
@@ -51,6 +55,18 @@ export const sdgGoals: Record<number, { label: string; color: string }> = {
   17: { label: 'Partnerships for the Goals', color: '#19486A' },
 }
 
+/** Names shown on the About page timeline, one per year. */
+export const yearNames: Record<number, string> = {
+  2026: 'Exploration Year',
+  2025: 'Double Year (Startup + Quantum Computing)',
+  2024: 'Networking Year',
+  2023: 'Next-step Year',
+  2022: 'Open-source & Experience Year',
+  2021: 'Full-stack Year',
+  2020: 'Backend Year',
+  2019: 'Baby steps Year',
+}
+
 export type Activity = {
   title: string
   description?: string // optional detail, e.g. the specific project built within a program
@@ -72,7 +88,7 @@ const activitiesData: Activity[] = [
     tags: ['exchange', 'epfl'],
     start: '2026-09',
     end: '2027-01',
-    upcoming: true,
+    ongoing: true,
     href: 'https://www.epfl.ch',
   },
   {
@@ -80,7 +96,6 @@ const activitiesData: Activity[] = [
     category: 'academic',
     tags: ['french', 'language', 'epfl'],
     start: '2026-08',
-    upcoming: true,
   },
   {
     title: 'Korean Language Winter Camp at KAIST',
@@ -108,13 +123,15 @@ const activitiesData: Activity[] = [
     category: 'quantum',
     tags: ['quantum-computing', 'sdg', 'hackathon'],
     start: '2026-09',
-    upcoming: true,
+    ongoing: true,
   },
   {
     title: 'QVolution Hackathon',
+    description: 'Selected among the Top 5 winning teams for the Quandela Challenge',
     category: 'quantum',
     tags: ['quantum-computing', 'quantum-information', 'hackathon'],
     start: '2026-02',
+    href: 'https://arxiv.org/abs/2603.10707',
   },
   {
     title: 'MIT iQuHack',
@@ -127,6 +144,7 @@ const activitiesData: Activity[] = [
     category: 'quantum',
     tags: ['quantum-computing', 'quantum-information'],
     start: '2026-01',
+    href: 'https://news.kaist.ac.kr/newsen/html/news/?mode=V&mng_no=57411',
   },
   {
     title: 'Yonsei & SKKU Qiskit Fall Fest 2025',
@@ -140,6 +158,7 @@ const activitiesData: Activity[] = [
     category: 'quantum',
     tags: ['quantum-computing', 'qiskit'],
     start: '2025-07',
+    href: 'https://www.ibm.com/quantum/blog/qiskit-summer-school-2025',
   },
 
   // Entrepreneurship
@@ -150,6 +169,7 @@ const activitiesData: Activity[] = [
     tags: ['entrepreneurship', 'startup', 'quantum-computing', 'optimization'],
     sdgs: [9, 12],
     start: '2026-03',
+    href: 'https://gsw.mit.edu/',
   },
   {
     title: 'KAIST-Silicon Valley Global Entrepreneurship Summer School',
@@ -161,11 +181,12 @@ const activitiesData: Activity[] = [
   },
   {
     title: 'KAIST-Silicon Valley Global Entrepreneurship Summer School',
-    description: 'GuardianAngel — proactive solution for workplace harassment',
+    description: 'Finalist with GuardianAngel — proactive solution for workplace harassment',
     category: 'entrepreneurship',
     tags: ['entrepreneurship', 'startup'],
     sdgs: [5, 8],
     start: '2025-06',
+    href: 'https://kgep.kaist.ac.kr/pages/sub/sub_0201',
   },
   {
     title: 'KAIST Lean Startup Program',
@@ -273,6 +294,7 @@ const activitiesData: Activity[] = [
     ],
     start: '2024-03',
     end: '2024-06',
+    href: 'https://github.com/west-sea/bookswap-mobile',
   },
   {
     title: 'Hello KAISTian! — TinyML wake-word detection on Raspberry Pi microphone input',
@@ -326,6 +348,295 @@ const activitiesData: Activity[] = [
     category: 'certification',
     tags: ['quantum-computing', 'qiskit'],
     start: '2025-07',
+  },
+  // --- New in 2026, and items carried over from the old About timeline ---
+
+  // Academic
+  {
+    title: 'Learning French (A1) at EPFL',
+    category: 'academic',
+    tags: ['french', 'language', 'epfl'],
+    start: '2026-09',
+    ongoing: true,
+  },
+  {
+    title: 'Hydrology for Engineers (ENV-221) at EPFL, taken out of curiosity',
+    category: 'academic',
+    tags: ['hydrology', 'epfl'],
+    start: '2026-09',
+    ongoing: true,
+    href: 'https://edu.epfl.ch/coursebook/en/hydrology-for-engineers-ENV-221',
+  },
+  {
+    title: 'Picked up Electrical Engineering as a double major at KAIST',
+    category: 'academic',
+    tags: ['electrical-engineering', 'kaist'],
+    start: '2025',
+  },
+  {
+    title: 'Basics of Quantum Information course by Prof. Joonwoo Bae',
+    category: 'academic',
+    tags: ['quantum-information', 'kaist'],
+    start: '2025',
+    href: 'https://ee.kaist.ac.kr/en/professor/16106/',
+  },
+  {
+    title: 'Core computer science courses at KAIST',
+    description:
+      'Algorithms (MATHS!!!), Data Structures (Java), Programming Principles (F#), Programming Language (Scala), System Programming (C)',
+    category: 'academic',
+    tags: ['computer-science', 'kaist'],
+    start: '2024',
+  },
+  {
+    title: 'Graduated from the Presidential School in Khiva',
+    category: 'academic',
+    tags: ['high-school'],
+    start: '2023-05',
+    href: 'https://portal.piima.uz/en/schools/presidental-schools/4',
+  },
+
+  // Research
+  {
+    title: 'Joined @GenoRobotics at @EPFL to work on the @AcousticBiodiversity project',
+    category: 'research',
+    tags: ['biodiversity', 'tinyml', 'epfl'],
+    sdgs: [15],
+    start: '2026-09',
+    ongoing: true,
+  },
+
+  // Quantum
+  {
+    title: 'Pivoted to quantum computing (out of boredom, I guess)',
+    category: 'quantum',
+    tags: ['quantum-computing'],
+    start: '2025',
+  },
+
+  // Software Development
+  {
+    title: 'Systems Engineer Intern at OnSquare, Seoul',
+    category: 'software',
+    tags: ['internship', 'memory-leaks', 'tdd'],
+    start: '2026-06',
+    end: '2026-08',
+  },
+  {
+    title: 'Summer internship at OnSquare, Seoul',
+    category: 'software',
+    tags: ['internship', 'typescript'],
+    start: '2024-06',
+    end: '2024-08',
+  },
+  {
+    title: 'Deployed this website, mcpeblocker.uz',
+    category: 'software',
+    tags: ['nextjs', 'website'],
+    start: '2023',
+    href: '/',
+  },
+  {
+    title: "Built shashka.uz's online multiplayer game platform and its API system",
+    category: 'software',
+    tags: ['fullstack', 'api'],
+    start: '2023',
+    href: 'https://api.shashka.uz/docs',
+  },
+  {
+    title: 'Contributed to the online multiplayer game shashka.uz',
+    category: 'software',
+    tags: ['game', 'web'],
+    start: '2022',
+    href: 'https://shashka.uz',
+  },
+  {
+    title:
+      'Built an automated testing & monitoring system for driving schools (got a patent for it)',
+    category: 'software',
+    tags: ['fullstack', 'patent'],
+    start: '2022',
+  },
+
+  // Personal
+  {
+    title: 'Half Marathon at the Lausanne Marathon 2026',
+    category: 'personal',
+    tags: ['running'],
+    start: '2026-10',
+    upcoming: true,
+    href: 'https://en.lausanne-marathon.com/',
+  },
+  {
+    title: 'Received so many rejections and put them on my Wall of Rejections',
+    category: 'personal',
+    tags: ['growth-mindset'],
+    start: '2025',
+    href: 'https://rejections.mcpeblocker.uz/profile/mcpeblocker?view=wall',
+  },
+  {
+    title: 'Moved to South Korea for undergraduate studies at KAIST',
+    category: 'personal',
+    tags: ['kaist', 'korea'],
+    start: '2023-08',
+  },
+  {
+    title: 'Started freelancing during the pandemic',
+    category: 'personal',
+    tags: ['freelancing'],
+    start: '2020',
+  },
+  {
+    title: 'Met my mentor, the founder of eagles.uz',
+    category: 'personal',
+    tags: ['mentorship'],
+    start: '2019',
+    href: 'https://eagles.uz',
+  },
+
+  // Self-learning
+  {
+    title: 'Learned grammY',
+    category: 'learning',
+    tags: ['telegram-bots'],
+    start: '2022',
+    href: 'https://grammy.dev',
+  },
+  {
+    title: 'Learned Next.js and created SEO-friendly websites',
+    category: 'learning',
+    tags: ['nextjs', 'seo'],
+    start: '2022',
+    href: 'https://nextjs.org/',
+  },
+  {
+    title: 'Gained more experience with Material UI',
+    category: 'learning',
+    tags: ['ui'],
+    start: '2022',
+    href: 'https://mui.com/',
+  },
+  {
+    title: 'Learned the basics of Ant Design',
+    category: 'learning',
+    tags: ['ui'],
+    start: '2022',
+    href: 'https://ant.design/',
+  },
+  {
+    title: 'Learned the basics of Flutter',
+    category: 'learning',
+    tags: ['mobile'],
+    start: '2022',
+    href: 'https://flutter.dev/',
+  },
+  {
+    title: 'Learned React, Redux, Tailwind CSS and some other UI libraries',
+    category: 'learning',
+    tags: ['react', 'frontend'],
+    start: '2021',
+    href: 'https://reactjs.org/',
+  },
+  {
+    title: 'Learned TypeScript',
+    category: 'learning',
+    tags: ['typescript'],
+    start: '2021',
+    href: 'https://www.typescriptlang.org/',
+  },
+  {
+    title: 'Learned Firebase: Cloud Firestore, Realtime Database, Authentication',
+    category: 'learning',
+    tags: ['firebase'],
+    start: '2021',
+    href: 'https://firebase.google.com',
+  },
+  {
+    title: 'Learned real-time communication with Socket.IO',
+    category: 'learning',
+    tags: ['realtime'],
+    start: '2021',
+    href: 'https://socket.io',
+  },
+  {
+    title: 'Learned Telegraf.js and made different Telegram bots with it',
+    category: 'learning',
+    tags: ['telegram-bots'],
+    start: '2021',
+    href: 'https://telegraf.js.org',
+  },
+  {
+    title: 'Learned how to create custom npm packages',
+    category: 'learning',
+    tags: ['npm'],
+    start: '2021',
+  },
+  {
+    title: 'Learned NestJS',
+    category: 'learning',
+    tags: ['backend'],
+    start: '2021',
+    href: 'https://nestjs.com/',
+  },
+  {
+    title: 'Learned TypeORM and Sequelize',
+    category: 'learning',
+    tags: ['orm'],
+    start: '2021',
+    href: 'https://typeorm.io/',
+  },
+  {
+    title: 'Learned to produce API docs with Swagger',
+    category: 'learning',
+    tags: ['api'],
+    start: '2021',
+    href: 'https://swagger.io/',
+  },
+  {
+    title: 'Worked with more databases: PostgreSQL and MySQL',
+    category: 'learning',
+    tags: ['databases'],
+    start: '2021',
+  },
+  {
+    title: 'Learned JavaScript',
+    category: 'learning',
+    tags: ['javascript'],
+    start: '2020',
+    href: 'https://www.javascript.com/',
+  },
+  {
+    title: 'Learned Node.js and Express to build REST APIs',
+    category: 'learning',
+    tags: ['backend'],
+    start: '2020',
+    href: 'https://nodejs.org',
+  },
+  {
+    title: 'Made use of MongoDB in my projects',
+    category: 'learning',
+    tags: ['databases'],
+    start: '2020',
+    href: 'https://www.mongodb.com/',
+  },
+  {
+    title: 'Learned Git and version control platforms: GitHub, GitLab',
+    category: 'learning',
+    tags: ['git'],
+    start: '2020',
+    href: 'https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control',
+  },
+  {
+    title: 'Learned the basics of web development: HTML, CSS',
+    category: 'learning',
+    tags: ['web'],
+    start: '2019',
+  },
+  {
+    title: 'Produced some pet projects to experience programming',
+    category: 'learning',
+    tags: ['web'],
+    start: '2019',
   },
 ]
 
