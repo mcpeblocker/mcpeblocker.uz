@@ -2,6 +2,7 @@ import LayoutWrapper from '@/components/LayoutWrapper'
 import { MDXLayoutRenderer } from '@/components/MDXComponents'
 import PageTitle from '@/components/PageTitle'
 import ScrollProgressBar from '@/components/ScrollProgressBar'
+import { accentStyle } from '@/lib/accent'
 import { coreContent, sortedBlogPost } from '@/lib/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
 import { InferGetStaticPropsType } from 'next'
@@ -46,7 +47,8 @@ export default function Blog({
   next,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
-    <>
+    // The post's first tag picks the accent for everything on its page.
+    <div style={accentStyle(post && 'tags' in post ? post.tags : undefined)}>
       <ScrollProgressBar />
       <LayoutWrapper>
         {post && 'draft' in post && post.draft !== true ? (
@@ -69,6 +71,6 @@ export default function Blog({
           </div>
         )}
       </LayoutWrapper>
-    </>
+    </div>
   )
 }

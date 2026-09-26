@@ -43,16 +43,20 @@ export default function PostLayout({ content, authorDetails, children }: Props) 
                 height={500}
               />
             ) : (
-              <div className="bg-primary-500 w-full h-60 rounded-lg" />
+              <div className="h-60 w-full rounded-lg border-t-4 border-primary-500 bg-primary-100/60 dark:bg-primary-900/40" />
             )}
             <div className="space-y-1 text-left absolute bottom-0 left-0 p-6 w-full rounded-b-lg">
               <div>
-                <PageTitle>{title}</PageTitle>
+                <PageTitle className={images ? 'text-white' : undefined}>{title}</PageTitle>
               </div>
               <dl className="space-y-10">
                 <div className="relative">
                   <dt className="sr-only">Published on</dt>
-                  <dd className="flex justify-between text-base font-medium leading-6 text-white">
+                  <dd
+                    className={`flex justify-between text-base font-medium leading-6 ${
+                      images ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
                     <div>
                       <Link
                         href={authorUrl ?? siteMetadata.siteUrl}

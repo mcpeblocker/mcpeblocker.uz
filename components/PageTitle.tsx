@@ -2,11 +2,17 @@ import { ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
+  className?: string
 }
 
-export default function PageTitle({ children }: Props) {
+export default function PageTitle({
+  children,
+  className = 'text-gray-900 dark:text-gray-100',
+}: Props) {
   return (
-    <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-white dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-5xl md:leading-14">
+    <h1
+      className={`text-3xl font-extrabold leading-9 tracking-tight ${className} sm:text-4xl sm:leading-10 md:text-5xl md:leading-14`}
+    >
       {children}
     </h1>
   )

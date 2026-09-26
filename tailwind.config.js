@@ -37,16 +37,34 @@ module.exports = {
         'gradient-3-end': '#2D00F7',
       },
       colors: {
+        // Reading-friendly theme: "warm night" (dark) and "paper" (light).
+        // black/white are the two page backgrounds and double as ink in the
+        // opposite mode; gray is a warm scale whose steps are the text colors.
+        black: '#1f1b16',
+        white: '#f5efe3',
+        gray: {
+          50: '#faf6ef',
+          100: '#ece2d2', // dark: headings · light: inline code bg
+          200: '#e0d5c2', // light: borders
+          300: '#d8cebf', // dark: body text
+          400: '#9c9080', // dark: muted
+          500: '#857a6c', // light: muted
+          600: '#5e554b',
+          700: '#433b33', // light: body text · dark: borders
+          800: '#2e2821', // dark: code bg, cards
+          900: '#211b15', // light: headings
+        },
         primary: {
-          100: '#FDD1D9',
-          200: '#FBA4BC',
-          300: '#F575A5',
-          400: '#EB519B',
-          500: '#DE1D8D',
-          600: '#BE1588',
-          700: '#9F0E7F',
-          800: '#800972',
-          900: '#6A0568',
+          // per-post accent: CSS variables set from lib/accent.ts
+          100: 'rgb(var(--accent-100) / <alpha-value>)',
+          200: 'rgb(var(--accent-200) / <alpha-value>)',
+          300: 'rgb(var(--accent-300) / <alpha-value>)',
+          400: 'rgb(var(--accent-400) / <alpha-value>)',
+          500: 'rgb(var(--accent-500) / <alpha-value>)',
+          600: 'rgb(var(--accent-600) / <alpha-value>)',
+          700: 'rgb(var(--accent-700) / <alpha-value>)',
+          800: 'rgb(var(--accent-800) / <alpha-value>)',
+          900: 'rgb(var(--accent-900) / <alpha-value>)',
         },
         success: {
           100: '#E4FCDB',
@@ -102,11 +120,11 @@ module.exports = {
           css: {
             color: theme('colors.gray.700'),
             a: {
-              color: theme('colors.gray.700'),
+              color: 'rgb(var(--accent-700))',
               '&:hover': {
-                color: theme('colors.gray.700'),
+                color: 'rgb(var(--accent-700))',
               },
-              code: { color: theme('colors.primary.400') },
+              code: { color: 'rgb(var(--accent-400))' },
             },
             h1: {
               fontWeight: '700',
@@ -165,11 +183,11 @@ module.exports = {
           css: {
             color: theme('colors.gray.300'),
             a: {
-              color: theme('colors.gray.300'),
+              color: 'rgb(var(--accent-300))',
               '&:hover': {
-                color: theme('colors.gray.300'),
+                color: 'rgb(var(--accent-300))',
               },
-              code: { color: theme('colors.primary.400') },
+              code: { color: 'rgb(var(--accent-400))' },
             },
             h1: {
               fontWeight: '700',

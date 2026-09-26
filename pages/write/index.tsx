@@ -16,6 +16,7 @@ import {
   WriteHead,
 } from '@/components/WriteKit'
 import siteMetadata from '@/data/siteMetadata'
+import { accentStyle } from '@/lib/accent'
 import kebabCase from '@/lib/utils/kebabCase'
 import Link from 'next/link'
 import { ComponentType, Fragment, useEffect, useRef, useState } from 'react'
@@ -924,6 +925,8 @@ export default function Write() {
           </div>
           <div
             ref={paneRef}
+            // same accent the published post will get (from its first tag)
+            style={accentStyle(d.tags.split(',').map((t) => t.trim()))}
             className={`${
               tab === 'preview' ? 'block' : 'hidden'
             } write-preview min-w-0 lg:block lg:min-h-0 lg:overflow-y-auto lg:pb-[40vh] lg:pr-3`}

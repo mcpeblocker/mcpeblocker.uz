@@ -1,4 +1,5 @@
 import Tag from '@/components/Tag'
+import { accentStyle } from '@/lib/accent'
 import { CoreContent } from '@/lib/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import { motion } from 'framer-motion'
@@ -21,19 +22,22 @@ export default function PostCard({ posts, showTags = true }: PostCardProps) {
           transition={{ duration: 0.6, delay: index / 10 }}
         >
           <Link href={`/blog/${slug}`} aria-label={`Read "${title}"`} legacyBehavior>
-            <article className="space-y-2 gap-3 xl:grid xl:grid-cols-4 xl:space-y-0 xl:items-baseline bg-opacity-20 py-5 cursor-pointer">
+            <article
+              style={accentStyle(tags)}
+              className="space-y-2 gap-3 xl:grid xl:grid-cols-4 xl:space-y-0 xl:items-baseline bg-opacity-20 py-5 cursor-pointer"
+            >
               <div className="space-y-3 xl:col-span-4">
                 <span className="text-2xl font-bold leading-8 tracking-tight">
                   <Link href={`/blog/${slug}`} legacyBehavior>
-                    <span className="text-primary-500 hover:text-primary-400 duration-300">
+                    <span className="text-gray-900 duration-300 hover:text-primary-600 dark:text-gray-100 dark:hover:text-primary-300">
                       {title}
                     </span>
                   </Link>
                 </span>
                 {showTags && tags && (
                   <div className="flex flex-wrap gap-3">
-                    {tags.map((tag) => (
-                      <Tag key={tag} text={tag} />
+                    {tags.map((tag, i) => (
+                      <Tag key={tag} text={tag} accent={i === 0} />
                     ))}
                   </div>
                 )}

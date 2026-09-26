@@ -4,7 +4,7 @@ const siteMetadata = {
   headerTitle: 'mcpeblocker',
   description: 'Individual. In search of answers - subjective, cyclic, continuous.',
   language: 'en-us',
-  theme: 'dark', // system, dark or light
+  theme: 'light', // system, dark or light
   siteUrl: 'https://mcpeblocker.uz',
   siteRepo: 'https://github.com/mcpeblocker/mcpeblocker.uz',
   siteLogo: '/static/favicons/favicon.ico',
