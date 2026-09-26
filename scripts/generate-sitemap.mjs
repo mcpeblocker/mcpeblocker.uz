@@ -15,6 +15,7 @@ async function generate() {
     '!pages/_*.{js|tsx}',
     '!pages/api',
     '!pages/404.{js|tsx}',
+    '!pages/write.tsx',
   ])
 
   const sitemap = `

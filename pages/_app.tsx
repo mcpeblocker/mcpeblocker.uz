@@ -25,11 +25,14 @@ function ModeAwarePage({ Component, pageProps }: Pick<AppProps, 'Component' | 'p
   // into the single academic-style view.
   const isPostPage = router.pathname === '/blog/[...slug]'
 
-  if (mode === 'simple' && !isPostPage) return <SimpleView />
+  if (mode === 'simple' && !isPostPage && router.pathname !== '/write') return <SimpleView />
   return <Component {...pageProps} />
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+  // No session recording on the private editor page (GitHub token input).
+  const isWritePage = useRouter().pathname === '/write'
+
   return (
     <ThemeProvider attribute="class" defaultTheme={siteMetadata.theme}>
       <Head>
@@ -38,7 +41,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <ViewModeProvider>
         <AnimatePresence exitBeforeEnter initial={false}>
           <ScrollObserver>
-            <LogRocket />
+            {!isWritePage && <LogRocket />}
             <ProgressBar />
             <ModeAwarePage Component={Component} pageProps={pageProps} />
           </ScrollObserver>
