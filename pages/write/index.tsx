@@ -16,10 +16,12 @@ import {
   WriteHead,
 } from '@/components/WriteKit'
 import siteMetadata from '@/data/siteMetadata'
+import entities, { Entity, handleOf } from '@/data/entities'
 import { accentStyle } from '@/lib/accent'
+import { remarkMentions } from '@/lib/mentions'
 import kebabCase from '@/lib/utils/kebabCase'
 import Link from 'next/link'
-import { ComponentType, Fragment, useEffect, useRef, useState } from 'react'
+import { ComponentType, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { IconType } from 'react-icons'
 import {
   RiAddLine,
@@ -175,6 +177,7 @@ async function compile(source: string) {
   const mod = await evaluate(source, {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ...(runtime as any),
+    remarkPlugins: [remarkMentions], // @KAIST → link, same as the site build
     rehypePlugins: [rehypeSlug, rehypeLinesAndToc(toc)],
   })
   return { Content: mod.default as ComponentType<Record<string, unknown>>, toc }
@@ -252,6 +255,23 @@ function paintSelection(range: Range | null) {
   else highlights.delete('write-selection')
 }
 
+// @mention suggestions: handles starting with the query first, then names containing it.
+const matchEntities = (query: string) => {
+  const q = query.toLowerCase()
+  const rank = (e: Entity) =>
+    [e.name, e.id, ...(e.aliases ?? [])].some((h) =>
+      h.toLowerCase().replace(/\s+/g, '').startsWith(q)
+    )
+      ? 0
+      : e.name.toLowerCase().includes(q)
+      ? 1
+      : 2
+  return entities
+    .filter((e) => rank(e) < 2)
+    .sort((a, b) => rank(a) - rank(b))
+    .slice(0, 8)
+}
+
 const previewComponents = {
   TOCInline,
   // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
@@ -273,6 +293,15 @@ export default function Write() {
   }>({})
   const textRef = useRef<HTMLTextAreaElement>(null)
   const mirrorRef = useRef<HTMLDivElement>(null)
+  // @mention suggestions: `from` is where the '@' sits, `to` the caret.
+  const [suggest, setSuggest] = useState<{
+    from: number
+    to: number
+    items: Entity[]
+    index: number
+  } | null>(null)
+  const [suggestPos, setSuggestPos] = useState({ top: 0, left: 0 })
+  const caretRef = useRef<HTMLSpanElement>(null)
   const paneRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -333,6 +362,21 @@ export default function Write() {
       clearTimeout(t)
     }
   }, [previewSource, showPreview]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Put the @mention popup just under the caret. The mirror renders a marker
+  // at the caret while suggestions are open; its offset is the caret position.
+  useLayoutEffect(() => {
+    const ta = textRef.current
+    const mirror = mirrorRef.current
+    const caret = caretRef.current
+    if (!suggest || !ta || !mirror || !caret) return
+    if (wide) mirror.style.width = `${ta.clientWidth}px`
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 28
+    setSuggestPos({
+      top: caret.offsetTop + lineHeight - (wide ? ta.scrollTop : 0),
+      left: Math.max(0, Math.min(caret.offsetLeft, ta.clientWidth - 272)),
+    })
+  }, [suggest, wide])
 
   // Re-highlight once the preview re-renders with new content.
   useEffect(() => highlight(), [preview.Content]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -479,6 +523,23 @@ export default function Write() {
   const insert = (text: string) => {
     const cur = selection()
     if (cur) replace(cur.s, cur.e, text, cur.s + text.length, cur.s + text.length)
+  }
+
+  // Open/refresh @mention suggestions when the caret sits right after "@query".
+  const updateSuggest = () => {
+    const ta = textRef.current
+    if (!ta || ta.selectionStart !== ta.selectionEnd) return setSuggest(null)
+    const to = ta.selectionStart
+    const m = ta.value.slice(Math.max(0, to - 40), to).match(/(?<![\w@.])@(\w*)$/)
+    const items = m ? matchEntities(m[1]) : []
+    setSuggest(m && items.length ? { from: to - m[0].length, to, items, index: 0 } : null)
+  }
+  const acceptSuggestion = (entity: Entity) => {
+    if (!suggest) return
+    const text = `@${handleOf(entity)} `
+    const at = suggest.from + text.length
+    replace(suggest.from, suggest.to, text, at, at)
+    setSuggest(null)
   }
   const history = (cmd: 'undo' | 'redo') => {
     textRef.current?.focus()
@@ -636,12 +697,12 @@ export default function Write() {
       <WriteHead title="Write" />
       <style>{`
         .write-preview [data-active] {
-          background: rgb(222 29 141 / 0.1);
-          box-shadow: 0 0 0 0.5rem rgb(222 29 141 / 0.1);
+          background: rgb(var(--accent-500) / 0.1);
+          box-shadow: 0 0 0 0.5rem rgb(var(--accent-500) / 0.1);
           border-radius: 0.2rem;
         }
         ::highlight(write-selection) {
-          background-color: rgb(222 29 141 / 0.55);
+          background-color: rgb(var(--accent-500) / 0.55);
           color: #fff;
         }
         .write-preview [data-line] { transition: background 0.15s, box-shadow 0.15s; }
@@ -885,8 +946,15 @@ export default function Write() {
               className={`${editorText} w-full resize-none overflow-hidden border-0 bg-transparent p-0 [grid-area:1/1] focus:ring-0 lg:h-full lg:overflow-y-auto lg:pb-[40vh]`}
               placeholder="Write in Markdown. Paste or drop images anywhere."
               value={d.body}
-              onChange={(e) => update({ body: e.target.value })}
-              onSelect={highlight}
+              onChange={(e) => {
+                update({ body: e.target.value })
+                updateSuggest()
+              }}
+              onSelect={() => {
+                highlight()
+                updateSuggest()
+              }}
+              onBlur={() => setSuggest(null)}
               onScroll={(e) => {
                 // phone: the textarea grows instead of scrolling; undo the brief
                 // inner scroll a new line causes before the mirror catches up
@@ -894,6 +962,22 @@ export default function Write() {
                 else syncScroll()
               }}
               onKeyDown={(e) => {
+                if (suggest) {
+                  const n = suggest.items.length
+                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    const step = e.key === 'ArrowDown' ? 1 : -1
+                    return setSuggest({ ...suggest, index: (suggest.index + step + n) % n })
+                  }
+                  if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault()
+                    return acceptSuggestion(suggest.items[suggest.index])
+                  }
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    return setSuggest(null)
+                  }
+                }
                 const action = (e.ctrlKey || e.metaKey) && shortcuts[e.key.toLowerCase()]
                 if (!action) return
                 e.preventDefault()
@@ -917,11 +1001,52 @@ export default function Write() {
               aria-hidden
               className={`${editorText} pointer-events-none invisible [grid-area:1/1] lg:absolute lg:left-0 lg:top-0`}
             >
-              {d.body.split('\n').map((l, i) => (
-                <div key={i}>{l || '\u00a0'}</div>
-              ))}
+              {d.body.split('\n').map((l, i, lines) => {
+                // while suggesting, mark the caret so the popup can sit under it
+                const lineStart = lines.slice(0, i).join('\n').length + (i ? 1 : 0)
+                const col = suggest ? suggest.to - lineStart : -1
+                return col >= 0 && col <= l.length ? (
+                  <div key={i}>
+                    {l.slice(0, col)}
+                    <span ref={caretRef} />
+                    {l.slice(col) || '\u00a0'}
+                  </div>
+                ) : (
+                  <div key={i}>{l || '\u00a0'}</div>
+                )
+              })}
               <div>{'\u00a0'}</div>
             </div>
+            {suggest && (
+              <ul
+                role="listbox"
+                aria-label="Mention suggestions"
+                className="absolute z-20 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                style={suggestPos}
+              >
+                {suggest.items.map((entity, i) => (
+                  <li key={entity.id} role="option" aria-selected={i === suggest.index}>
+                    <button
+                      type="button"
+                      // keep focus (and the caret) in the textarea
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => acceptSuggestion(entity)}
+                      className={`flex w-full items-baseline justify-between gap-2 px-3 py-1.5 text-left ${
+                        i === suggest.index ? 'bg-gray-100 dark:bg-gray-700' : ''
+                      }`}
+                    >
+                      <span className="truncate">
+                        <span className="font-semibold">@{handleOf(entity)}</span>
+                        {entity.name !== handleOf(entity) && (
+                          <span className="ml-1.5 text-gray-500">{entity.name}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-xs text-gray-400">{entity.kind}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div
             ref={paneRef}

@@ -1,6 +1,8 @@
 import { PageSEO } from '@/components/SEO'
 import { useViewMode } from '@/components/ViewMode'
 import activitiesData, { activityCategories } from '@/data/activitiesData'
+import { education, experience } from '@/data/cvData'
+import entities from '@/data/entities'
 import projectsData, { projectCategories } from '@/data/projectsData'
 import siteMetadata from '@/data/siteMetadata'
 import { formatPeriod, sortActivities } from '@/lib/utils/activities'
@@ -114,6 +116,40 @@ export default function SimpleView() {
               </div>
             </Section>
           )}
+
+          {/* Education & work experience (data/cvData.ts) */}
+          {(
+            [
+              ['Education', education],
+              ['Experience', experience],
+            ] as const
+          ).map(([title, entries]) => (
+            <Section key={title} title={title}>
+              <ul className="space-y-6">
+                {entries.map((e) => (
+                  <li key={`${e.org}-${e.title}-${e.start}`}>
+                    <p className="font-medium text-gray-900">
+                      {e.title},{' '}
+                      <Link href={`/at/${e.org}`} className="text-sky-700 hover:underline">
+                        {entities.find((x) => x.id === e.org)?.name ?? e.org}
+                      </Link>
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {formatPeriod({ ...e, ongoing: !e.end })} · {e.location}
+                    </p>
+                    {e.details && <p className="mt-1 text-sm text-gray-600">{e.details}</p>}
+                    {e.points && (
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-gray-600">
+                        {e.points.map((p) => (
+                          <li key={p}>{p}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ))}
 
           {/* Activities, grouped by category (CV-style, no filters) */}
           <Section title="Activities">

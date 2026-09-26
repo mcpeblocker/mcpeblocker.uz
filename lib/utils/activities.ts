@@ -60,7 +60,7 @@ const formatMonthYear = (parsed: ParsedDate): string =>
   parsed.month ? `${MONTH_LABELS[parsed.month - 1]} ${parsed.year}` : `${parsed.year}`
 
 /** Human-readable period label, e.g. "Sep 2026 – Jan 2027", "Oct – Nov 2025", "2023 – Present". */
-export const formatPeriod = (a: Activity): string => {
+export const formatPeriod = (a: Pick<Activity, 'start' | 'end' | 'ongoing'>): string => {
   const start = parseDate(a.start)
   if (!start) return 'Ongoing'
   const startLabel = formatMonthYear(start)

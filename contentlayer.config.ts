@@ -3,8 +3,18 @@ import readingTime from 'reading-time'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypePrismPlus from 'rehype-prism-plus'
 import rehypeSlug from 'rehype-slug'
+import { mentionsIn, remarkMentions } from './lib/mentions'
 import remarkCodeTitles from './lib/remark-code-title'
 import { extractTocHeadings } from './lib/remark-toc-headings'
+
+// Images a post shows, in order (markdown or <img>/<Image>; code blocks don't count).
+const imagesIn = (markdown: string) =>
+  Array.from(
+    markdown
+      .replace(/```[\s\S]*?```/g, '')
+      .matchAll(/!\[([^\]]*)\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/g),
+    (m) => ({ src: m[2] ?? m[3], alt: m[1] ?? '' })
+  )
 
 const computedFields: ComputedFields = {
   readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
@@ -17,13 +27,12 @@ const computedFields: ComputedFields = {
   // image in the post (markdown or <img>/<Image>); '' falls back to the site banner.
   ogImage: {
     type: 'string',
-    resolve: (doc) => {
-      const m = doc.body.raw
-        .replace(/```[\s\S]*?```/g, '')
-        .match(/!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/)
-      return doc.thumbnail || doc.images?.[0] || m?.[1] || m?.[2] || ''
-    },
+    resolve: (doc) => doc.thumbnail || doc.images?.[0] || imagesIn(doc.body.raw)[0]?.src || '',
   },
+  // For /gallery: every picture in the post body.
+  gallery: { type: 'json', resolve: (doc) => imagesIn(doc.body.raw) },
+  // Entity ids this post @mentions, for the backlinks on /at/<id>.
+  mentions: { type: 'json', resolve: (doc) => mentionsIn(doc.body.raw) },
 }
 
 export const Blog = defineDocumentType(() => ({
@@ -72,7 +81,7 @@ export default makeSource({
   documentTypes: [Blog, Authors],
   mdx: {
     cwd: process.cwd(),
-    remarkPlugins: [remarkCodeTitles],
+    remarkPlugins: [remarkCodeTitles, remarkMentions],
     rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings, [rehypePrismPlus, { ignoreMissing: true }]],
   },
 })
