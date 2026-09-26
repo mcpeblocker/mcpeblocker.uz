@@ -27,7 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300')
+      // No CDN caching: a stale list after posting makes the new comment look lost.
+      res.setHeader('Cache-Control', 'no-store')
       return res.json({ comments: await getComments(post.slug, post.title) })
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

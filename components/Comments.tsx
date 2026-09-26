@@ -35,7 +35,9 @@ export default function Comments({ slug }: { slug: string }) {
   const shownAt = useRef(Date.now())
   const captchaRef = useRef<HTMLDivElement>(null)
   const captchaId = useRef<string>()
-  const captchaToken = useRef('')
+  // Turnstile token; submitting without one always fails the spam check.
+  const [token, setToken] = useState('')
+  const [captchaError, setCaptchaError] = useState(false)
 
   // Only talk to the API once the section is about to scroll into view.
   useEffect(() => {
@@ -68,7 +70,9 @@ export default function Comments({ slug }: { slug: string }) {
       captchaId.current = window.turnstile.render(captchaRef.current, {
         sitekey: SITE_KEY,
         appearance: 'interaction-only',
-        callback: (t: string) => (captchaToken.current = t),
+        callback: (t: string) => (setToken(t), setCaptchaError(false)),
+        'expired-callback': () => setToken(''),
+        'error-callback': () => setCaptchaError(true),
       })
     }
     if (window.turnstile) return render()
@@ -99,7 +103,7 @@ export default function Comments({ slug }: { slug: string }) {
           text,
           website,
           elapsed: (Date.now() - shownAt.current) / 1000,
-          turnstile: captchaToken.current,
+          turnstile: token,
         }),
       })
       const data = await res.json()
@@ -111,10 +115,12 @@ export default function Comments({ slug }: { slug: string }) {
       setStatus({ kind: 'error', msg: (err as Error).message })
     } finally {
       setSending(false)
-      captchaToken.current = ''
+      setToken('') // single-use; the widget issues a fresh one
       if (captchaId.current) window.turnstile?.reset(captchaId.current)
     }
   }
+
+  const waitingForCheck = Boolean(SITE_KEY) && !token
 
   const field =
     'w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-base text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:text-gray-100'
@@ -201,15 +207,21 @@ export default function Comments({ slug }: { slug: string }) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            disabled={sending}
+            disabled={sending || waitingForCheck}
             className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-50"
           >
-            {sending ? 'Sending…' : 'Post comment'}
+            {sending ? 'Sending…' : waitingForCheck ? 'Checking you’re human…' : 'Post comment'}
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             No sign-in needed. Be kind.
           </span>
         </div>
+        {captchaError && (
+          <p role="status" className="text-sm text-red-600 dark:text-red-400">
+            The spam check couldn&apos;t run. A content blocker may be stopping it; allow
+            challenges.cloudflare.com and reload.
+          </p>
+        )}
         {status && (
           <p
             role="status"
