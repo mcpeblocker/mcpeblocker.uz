@@ -1,3 +1,4 @@
+import AboutTabs from '@/components/AboutTabs'
 import LayoutWrapper from '@/components/LayoutWrapper'
 import { PageSEO } from '@/components/SEO'
 import activitiesData, {
@@ -117,6 +118,7 @@ export default function Activities() {
 
   return (
     <LayoutWrapper>
+      <AboutTabs />
       <PageSEO
         title={`Activities - ${siteMetadata.author}`}
         description="Academic, research, quantum, entrepreneurship and software activities timeline"

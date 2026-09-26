@@ -1,4 +1,4 @@
-import headerNavLinks from '@/data/headerNavLinks'
+import headerNavLinks, { isActiveLink } from '@/data/headerNavLinks'
 import classNames from 'classnames'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -77,8 +77,9 @@ const MobileNav = () => {
               Home
             </Link>
           </div>
-          {headerNavLinks.map(({ title, href }) => {
-            const active = router.pathname.includes(href)
+          {headerNavLinks.map((link) => {
+            const { title, href } = link
+            const active = isActiveLink(link, router.pathname)
 
             return (
               <div key={title} className="px-12 py-4">

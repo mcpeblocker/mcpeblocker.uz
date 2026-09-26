@@ -3,8 +3,10 @@ import Link from 'next/link'
 import { AiFillLinkedin } from 'react-icons/ai'
 import { FaGithub, FaSpotify, FaSteam, FaTwitter } from 'react-icons/fa'
 import NowPlaying from './NowPlaying'
+import { useViewMode } from './ViewMode'
 
 export default function Footer() {
+  const { setMode } = useViewMode()
   return (
     <footer>
       <div className="flex flex-col space-y-6 justify-start py-10 mb-0 space-x-0 text-md text-gray-500 dark:text-gray-400">
@@ -17,6 +19,16 @@ export default function Footer() {
               <Link href="/" legacyBehavior>
                 {siteMetadata.title}
               </Link>
+            </li>
+            <li>{` • `}</li>
+            <li>
+              <button
+                type="button"
+                onClick={() => setMode('simple')}
+                className="underline-offset-4 hover:text-gray-900 hover:underline dark:hover:text-gray-100"
+              >
+                Simple view
+              </button>
             </li>
           </ul>
           <ul className="flex space-x-5 items-center cursor-pointer">

@@ -1,14 +1,12 @@
-import headerNavLinks from '@/data/headerNavLinks'
+import headerNavLinks, { isActiveLink } from '@/data/headerNavLinks'
 import classNames from 'classnames'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
-import { useViewMode } from './ViewMode'
 
 export default function Header() {
   const router = useRouter()
-  const { mode, setMode } = useViewMode()
 
   return (
     <header className="py-5 md:py-10 z-40 bg-transparent">
@@ -29,8 +27,9 @@ export default function Header() {
         </div>
         <div className="flex items-center text-base leading-5 space-x-3">
           <div className="hidden sm:flex space-x-5">
-            {headerNavLinks.map(({ title, href }) => {
-              const active = router.pathname.includes(href)
+            {headerNavLinks.map((link) => {
+              const { title, href } = link
+              const active = isActiveLink(link, router.pathname)
               return (
                 <Link
                   key={title}
@@ -47,13 +46,6 @@ export default function Header() {
               )
             })}
           </div>
-          <button
-            aria-label="Toggle simple view"
-            onClick={() => setMode(mode === 'simple' ? 'default' : 'simple')}
-            className="rounded border border-gray-400 px-2 py-1 text-xs font-bold tracking-wide text-gray-900 dark:border-gray-500 dark:text-gray-100"
-          >
-            {mode === 'simple' ? 'Default' : 'Simple'}
-          </button>
           <ThemeSwitch />
           <MobileNav />
         </div>
