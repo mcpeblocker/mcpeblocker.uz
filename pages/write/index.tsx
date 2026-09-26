@@ -159,6 +159,58 @@ async function readImage(file: File): Promise<string> {
   return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', 0.85)
 }
 
+// Roughly what a markdown snippet renders to as text: drop images, link URLs,
+// line prefixes and emphasis/code markers.
+const plain = (md: string) =>
+  md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s*(#{1,6}\s|>\s?|[-*+]\s|\d+\.\s)/gm, '')
+    .replace(/[*_`[\]]/g, '')
+
+// Find `needle` in the rendered text from `start` onwards (whitespace-insensitive),
+// preferring a match near `near` characters in. Returns a DOM Range or null.
+function findText(start: Element, needle: string, near: number): Range | null {
+  const want = needle.replace(/\s+/g, ' ').trim()
+  if (!want) return null
+  const walker = document.createTreeWalker(start.closest('article') ?? start, NodeFilter.SHOW_TEXT)
+  walker.currentNode = start
+  let text = ''
+  const at: [Node, number][] = [] // text[i] comes from node at offset
+  for (
+    let n = walker.nextNode();
+    n && text.length < near + want.length + 2000;
+    n = walker.nextNode()
+  ) {
+    const s = n.textContent ?? ''
+    for (let i = 0; i < s.length; i++) {
+      const ws = /\s/.test(s[i])
+      if (ws && text.endsWith(' ')) continue
+      text += ws ? ' ' : s[i]
+      at.push([n, i])
+    }
+  }
+  let i = text.indexOf(want, Math.max(0, near - 20))
+  if (i < 0) i = text.indexOf(want)
+  if (i < 0) return null
+  const range = document.createRange()
+  range.setStart(at[i][0], at[i][1])
+  const [endNode, endOffset] = at[i + want.length - 1]
+  range.setEnd(endNode, endOffset + 1)
+  return range
+}
+
+// CSS Custom Highlight API: paints a range without touching React's DOM.
+function paintSelection(range: Range | null) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { highlights } = CSS as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Highlight = (window as any).Highlight
+  if (!highlights || !Highlight) return // older browsers: block highlight only
+  if (range) highlights.set('write-selection', new Highlight(range))
+  else highlights.delete('write-selection')
+}
+
 const previewComponents = {
   TOCInline,
   // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
@@ -242,30 +294,34 @@ export default function Write() {
   }, [previewSource, showPreview]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-highlight once the preview re-renders with new content.
-  useEffect(() => highlight(false), [preview.Content]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => highlight(), [preview.Content]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const blocks = () =>
     Array.from(paneRef.current?.querySelectorAll<HTMLElement>('[data-line]') ?? [])
 
-  // Mark the preview block that holds the caret; blocks are in source order,
-  // so the last one starting at or before the caret line is the innermost match.
-  function highlight(scroll: boolean) {
+  // Mark the preview block that holds the caret (blocks are in source order, so
+  // the last one starting at or before the caret line is the innermost match),
+  // and paint the selected text itself. Never scrolls: scroll sync keeps the
+  // panes aligned, and scrolling here made the preview jump while selecting.
+  function highlight() {
     const ta = textRef.current
     const pane = paneRef.current
     if (!ta || !pane) return
-    const line = ta.value.slice(0, ta.selectionStart).split('\n').length
+    const { value, selectionStart: s, selectionEnd: e } = ta
+    const line = value.slice(0, s).split('\n').length
     let active: HTMLElement | undefined
     for (const el of blocks()) {
       if (Number(el.dataset.line) > line) break
       active = el
     }
     pane.querySelectorAll('[data-active]').forEach((el) => el.removeAttribute('data-active'))
-    if (!active) return
-    active.setAttribute('data-active', '')
-    const r = active.getBoundingClientRect()
-    const p = pane.getBoundingClientRect()
-    if (scroll && (r.top < p.top || r.bottom > p.bottom))
-      pane.scrollTop += r.top - p.top - p.height / 3
+    active?.setAttribute('data-active', '')
+    if (!active || e === s) return paintSelection(null)
+    // source index where the active block starts, to search near the same offset
+    const blockStart = value.split('\n', Number(active.dataset.line) - 1).join('\n').length
+    paintSelection(
+      findText(active, plain(value.slice(s, e)), plain(value.slice(blockStart, s)).length)
+    )
   }
 
   // Scroll the preview so the block at the top of the editor is at the top of
@@ -469,9 +525,13 @@ export default function Write() {
       <WriteHead title="Write" />
       <style>{`
         .write-preview [data-active] {
-          background: rgb(222 29 141 / 0.09);
-          box-shadow: 0 0 0 0.5rem rgb(222 29 141 / 0.09);
+          background: rgb(222 29 141 / 0.1);
+          box-shadow: 0 0 0 0.5rem rgb(222 29 141 / 0.1);
           border-radius: 0.2rem;
+        }
+        ::highlight(write-selection) {
+          background-color: rgb(222 29 141 / 0.55);
+          color: #fff;
         }
         .write-preview [data-line] { transition: background 0.15s, box-shadow 0.15s; }
       `}</style>
@@ -673,7 +733,7 @@ export default function Write() {
               placeholder="Write in Markdown. Paste or drop images anywhere."
               value={d.body}
               onChange={(e) => update({ body: e.target.value })}
-              onSelect={() => highlight(true)}
+              onSelect={highlight}
               onScroll={(e) => {
                 // phone: the textarea grows instead of scrolling; undo the brief
                 // inner scroll a new line causes before the mirror catches up
