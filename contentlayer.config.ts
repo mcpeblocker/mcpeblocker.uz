@@ -13,6 +13,17 @@ const computedFields: ComputedFields = {
     resolve: (doc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, ''),
   },
   toc: { type: 'string', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+  // Link-preview image: explicit thumbnail, else header image, else the first
+  // image in the post (markdown or <img>/<Image>); '' falls back to the site banner.
+  ogImage: {
+    type: 'string',
+    resolve: (doc) => {
+      const m = doc.body.raw.match(
+        /!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/
+      )
+      return doc.thumbnail || doc.images?.[0] || m?.[1] || m?.[2] || ''
+    },
+  },
 }
 
 export const Blog = defineDocumentType(() => ({
@@ -28,6 +39,7 @@ export const Blog = defineDocumentType(() => ({
     archived: { type: 'boolean' },
     summary: { type: 'string' },
     images: { type: 'list', of: { type: 'string' } },
+    thumbnail: { type: 'string' }, // link-preview image only; `images` is the post's header
     author: { type: 'string', required: true },
     authorUrl: { type: 'string' },
     layout: { type: 'string' },

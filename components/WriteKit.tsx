@@ -28,6 +28,7 @@ export type Draft = {
   origSlug?: string // set once the post exists in the repo; publishing then updates it
   raw?: boolean // body is hand-written MDX from the repo: don't escape it
   fm?: Record<string, unknown> // original frontmatter, so unedited fields survive
+  thumbnail?: string // link-preview image: '' = auto (first image), 'img:<id>' or a site path
 }
 
 export const today = () => new Date().toISOString().slice(0, 10)

@@ -99,24 +99,19 @@ export const BlogSEO = ({
   date,
   lastmod,
   url,
-  images = [],
+  ogImage,
 }: BlogSeoProps) => {
   const router = useRouter()
   const publishedAt = new Date(date).toISOString()
   const modifiedAt = new Date(lastmod || date).toISOString()
-  const imagesArr =
-    images.length === 0
-      ? [siteMetadata.socialBanner]
-      : typeof images === 'string'
-      ? [images]
-      : images
+  const img = ogImage || siteMetadata.socialBanner
 
-  const featuredImages = imagesArr.map((img) => {
-    return {
+  const featuredImages = [
+    {
       '@type': 'ImageObject',
-      url: `${siteMetadata.siteUrl}${img}`,
-    }
-  })
+      url: /^https?:\/\//.test(img) ? img : `${siteMetadata.siteUrl}${img}`,
+    },
+  ]
 
   let authorList
   if (authorDetails) {

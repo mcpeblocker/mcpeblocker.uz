@@ -74,6 +74,25 @@ const buildBody = (d: Draft, src: (id: string) => string) =>
     d.images[id] ? `(${src(id)})` : m
   )
 
+// Images the post shows, in order: pasted ones as 'img:<id>', others as their src.
+// Same pattern the site uses to pick the default link-preview image.
+const postImages = (d: Draft) =>
+  Array.from(
+    new Set(
+      Array.from(
+        d.body.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)|<(?:img|Image)\b[^>]*?\bsrc=["']([^"']+)/g),
+        (m) => m[1] ?? m[2]
+      )
+    )
+  )
+const localId = (src?: string) => src?.match(/^img:([\w-]+)$/)?.[1]
+// The site path an image ends up at ('' when a pasted image is missing).
+const publishedSrc = (d: Draft, slug: string, src = '') => {
+  const id = localId(src)
+  if (!id) return src
+  return d.images[id] ? imgPath(slug, id, d.images[id]) : ''
+}
+
 const buildFile = (d: Draft) => {
   const slug = slugOf(d)
   const base = d.fm ?? {
@@ -85,7 +104,7 @@ const buildFile = (d: Draft) => {
     authorUrl: AUTHOR_URL,
   }
   // Spread keeps the original key order; untouched fields (archived, lastmod…) survive.
-  const fm = {
+  const fm: Record<string, unknown> = {
     ...base,
     title: d.title.trim(),
     date: d.date,
@@ -95,6 +114,10 @@ const buildFile = (d: Draft) => {
       .filter(Boolean),
     summary: d.summary.trim(),
   }
+  // No thumbnail = the site picks the first image in the post (or its banner).
+  const thumbnail = publishedSrc(d, slug, d.thumbnail)
+  if (thumbnail) fm.thumbnail = thumbnail
+  else delete fm.thumbnail
   return joinPost(fm, `\n${buildBody(d, (id) => imgPath(slug, id, d.images[id]))}\n`)
 }
 
@@ -457,6 +480,28 @@ export default function Write() {
     setStatus('')
   }
 
+  // Link-preview image choices: auto, every image in the post, the current pick.
+  const thumbOptions = Array.from(new Set(['', ...postImages(d), d.thumbnail ?? '']))
+  const displaySrc = (src: string): string => {
+    if (!src) return displaySrc(postImages(d)[0] ?? siteMetadata.socialBanner)
+    const imgId = localId(src)
+    return imgId ? d.images[imgId] : src
+  }
+  const uploadThumbnail = async (file?: File) => {
+    if (!file?.type.startsWith('image/')) return
+    const imgId = newId()
+    const data = await readImage(file)
+    setDrafts((all) => ({
+      ...all,
+      [id]: {
+        ...all[id],
+        images: { ...all[id].images, [imgId]: data },
+        thumbnail: `img:${imgId}`,
+        updated: Date.now(),
+      },
+    }))
+  }
+
   const publish = async () => {
     const slug = slugOf(d)
     if (!d.title.trim() || !slug) return setStatus('Add a title first.')
@@ -475,7 +520,13 @@ export default function Write() {
         if (existing.ok && !confirm(`"${slug}" already exists on the site. Overwrite it?`)) return
       }
       setStatus('Uploading…')
-      const used = Array.from(new Set(Array.from(d.body.matchAll(IMG_RE), (m) => m[1])))
+      const thumbId = localId(d.thumbnail)
+      const used = Array.from(
+        new Set([
+          ...Array.from(d.body.matchAll(IMG_RE), (m) => m[1]),
+          ...(thumbId ? [thumbId] : []),
+        ])
+      )
       const images = used
         .filter((imgId) => d.images[imgId])
         .map((imgId) => ({
@@ -683,6 +734,47 @@ export default function Write() {
                   onChange={(e) => update({ summary: e.target.value })}
                 />
               </label>
+              <div className="sm:col-span-3">
+                Link preview image
+                <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
+                  {thumbOptions.map((src) => (
+                    <button
+                      key={src || 'auto'}
+                      type="button"
+                      title={src ? 'Use this image' : 'Auto: first image in the post'}
+                      onClick={() => update({ thumbnail: src })}
+                      className={`relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                        (d.thumbnail ?? '') === src
+                          ? 'border-primary-500'
+                          : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={displaySrc(src)} alt="" className="h-full w-full object-cover" />
+                      {!src && (
+                        <span className="absolute inset-x-0 bottom-0 bg-black/60 text-center text-xs text-white">
+                          Auto
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  <label className="grid h-16 w-28 shrink-0 cursor-pointer place-items-center rounded-lg border-2 border-dashed border-gray-300 text-xs hover:border-primary-500 dark:border-gray-700">
+                    <span className="flex flex-col items-center gap-0.5">
+                      <RiImageAddLine size={18} />
+                      Upload
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) => {
+                        uploadThumbnail(e.target.files?.[0])
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </details>
         </div>

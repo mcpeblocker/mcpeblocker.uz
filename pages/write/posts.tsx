@@ -40,6 +40,7 @@ function toDraft(slug: string, text: string): Draft {
     date: String(fm.date ?? '').slice(0, 10),
     tags: Array.isArray(fm.tags) ? fm.tags.join(', ') : '',
     summary: String(fm.summary ?? ''),
+    thumbnail: typeof fm.thumbnail === 'string' ? fm.thumbnail : '',
     body: body.replace(/^\n+/, '').trimEnd(),
     raw: true,
     fm,
