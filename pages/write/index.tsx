@@ -1,8 +1,10 @@
+import TOCInline from '@/components/TOCInline'
 import {
   BRANCH,
   commitFiles,
   Draft,
   DRAFTS_KEY,
+  joinPost,
   load,
   newDraft,
   newId,
@@ -14,9 +16,31 @@ import {
 } from '@/components/WriteKit'
 import siteMetadata from '@/data/siteMetadata'
 import kebabCase from '@/lib/utils/kebabCase'
-import yaml from 'js-yaml'
 import Link from 'next/link'
-import { ComponentType, useEffect, useRef, useState } from 'react'
+import { ComponentType, Fragment, useEffect, useRef, useState } from 'react'
+import { IconType } from 'react-icons'
+import {
+  RiAddLine,
+  RiArticleLine,
+  RiBold,
+  RiCodeBoxLine,
+  RiCodeLine,
+  RiDeleteBinLine,
+  RiDoubleQuotesL,
+  RiFileList2Line,
+  RiH2,
+  RiH3,
+  RiImageAddLine,
+  RiItalic,
+  RiLink,
+  RiListOrdered,
+  RiListUnordered,
+  RiLockLine,
+  RiSendPlaneFill,
+  RiSeparator,
+} from 'react-icons/ri'
+import rehypeSlug from 'rehype-slug'
+import { Toc } from 'types/Toc'
 
 const AUTHOR = 'Alisher Ortiqov'
 const AUTHOR_URL = 'https://t.me/alisherortiqov'
@@ -29,17 +53,21 @@ const imgPath = (slug: string, id: string, dataUrl: string) =>
   `/static/images/blog/${slug}/${id}.${extOf(dataUrl)}`
 
 // MDX treats `{` and `<` as code. Escape them in prose so casual writing can't
-// break the build; fenced/inline code is left alone.
+// break the build; code and the TOC line are left alone. Never adds lines, so
+// preview line numbers stay equal to editor line numbers.
 const escapeMdx = (md: string) =>
   md
-    .split(/(```[\s\S]*?```|`[^`\n]*`)/)
+    .split(/(```[\s\S]*?```|`[^`\n]*`|^<TOCInline[^\n]*\/>$)/m)
     .map((part, i) =>
       i % 2 ? part : part.replace(/[{}]/g, '\\$&').replace(/<(?![A-Za-z/])/g, '&lt;')
     )
     .join('')
 
+// Drafts from before the TOC moved into the body carried a `toc` flag.
+const migrate = (d: Draft): Draft =>
+  d.toc ? { ...d, toc: undefined, body: TOC_BLOCK + d.body } : d
+
 const buildBody = (d: Draft, src: (id: string) => string) =>
-  (d.toc ? TOC_BLOCK : '') +
   (d.raw ? d.body : escapeMdx(d.body)).replace(IMG_RE, (m, id) =>
     d.images[id] ? `(${src(id)})` : m
   )
@@ -65,8 +93,34 @@ const buildFile = (d: Draft) => {
       .filter(Boolean),
     summary: d.summary.trim(),
   }
-  const body = buildBody(d, (id) => imgPath(slug, id, d.images[id]))
-  return `---\n${yaml.dump(fm, { lineWidth: -1, flowLevel: 1 })}---\n\n${body}\n`
+  return joinPost(fm, `\n${buildBody(d, (id) => imgPath(slug, id, d.images[id]))}\n`)
+}
+
+type HNode = {
+  type: string
+  tagName?: string
+  value?: string
+  children?: HNode[]
+  properties?: Record<string, unknown>
+  position?: { start: { line: number } }
+}
+const BLOCKS = /^(p|h[1-6]|li|pre|blockquote|hr|table|tr|img|center)$/
+const textOf = (n: HNode): string => n.value ?? (n.children ?? []).map(textOf).join('')
+
+// Tags preview blocks with their source line (for scroll sync + caret highlight)
+// and collects headings for the table of contents, exactly as rehype-slug ids them.
+const rehypeLinesAndToc = (toc: Toc) => () => (tree: HNode) => {
+  const walk = (node: HNode) => {
+    for (const c of node.children ?? []) {
+      if (c.type === 'element' && BLOCKS.test(c.tagName ?? '') && c.position) {
+        c.properties = { ...c.properties, dataLine: c.position.start.line }
+        const depth = Number(c.tagName?.match(/^h([1-6])$/)?.[1])
+        if (depth) toc.push({ value: textOf(c), depth, url: `#${c.properties.id}` })
+      }
+      if (c.tagName !== 'pre') walk(c)
+    }
+  }
+  walk(tree)
 }
 
 async function compile(source: string) {
@@ -74,9 +128,13 @@ async function compile(source: string) {
     import('@mdx-js/mdx'),
     import('react/jsx-runtime'),
   ])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod = await evaluate(source, { ...(runtime as any) })
-  return mod.default as ComponentType<Record<string, unknown>>
+  const toc: Toc = []
+  const mod = await evaluate(source, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...(runtime as any),
+    rehypePlugins: [rehypeSlug, rehypeLinesAndToc(toc)],
+  })
+  return { Content: mod.default as ComponentType<Record<string, unknown>>, toc }
 }
 
 async function readImage(file: File): Promise<string> {
@@ -99,6 +157,12 @@ async function readImage(file: File): Promise<string> {
   return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', 0.85)
 }
 
+const previewComponents = {
+  TOCInline,
+  // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+  Image: (p: Record<string, string>) => <img {...p} />,
+}
+
 export default function Write() {
   const { token, setToken, lock } = useToken()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
@@ -109,13 +173,17 @@ export default function Write() {
   const [storageError, setStorageError] = useState(false)
   const [preview, setPreview] = useState<{
     Content?: ComponentType<Record<string, unknown>>
+    toc?: Toc
     error?: string
   }>({})
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const mirrorRef = useRef<HTMLDivElement>(null)
+  const paneRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const saved = load<Record<string, Draft>>(DRAFTS_KEY, {})
+    for (const k in saved) saved[k] = migrate(saved[k])
     const params = new URLSearchParams(location.search) // ?d=<draft id> | ?new
     const latest = Object.values(saved).sort((a, b) => b.updated - a.updated)[0]
     const d = saved[params.get('d') ?? ''] ?? (params.has('new') ? null : latest) ?? newDraft()
@@ -150,14 +218,68 @@ export default function Write() {
     let live = true
     const t = setTimeout(() => {
       compile(previewSource)
-        .then((Content) => live && setPreview({ Content }))
+        .then((res) => live && setPreview(res))
         .catch((e) => live && setPreview((p) => ({ ...p, error: String(e.message ?? e) })))
-    }, 400)
+    }, 300)
     return () => {
       live = false
       clearTimeout(t)
     }
   }, [previewSource]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-highlight once the preview re-renders with new content.
+  useEffect(() => highlight(false), [preview.Content]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const blocks = () =>
+    Array.from(paneRef.current?.querySelectorAll<HTMLElement>('[data-line]') ?? [])
+
+  // Mark the preview block that holds the caret; blocks are in source order,
+  // so the last one starting at or before the caret line is the innermost match.
+  function highlight(scroll: boolean) {
+    const ta = textRef.current
+    const pane = paneRef.current
+    if (!ta || !pane) return
+    const line = ta.value.slice(0, ta.selectionStart).split('\n').length
+    let active: HTMLElement | undefined
+    for (const el of blocks()) {
+      if (Number(el.dataset.line) > line) break
+      active = el
+    }
+    pane.querySelectorAll('[data-active]').forEach((el) => el.removeAttribute('data-active'))
+    if (!active) return
+    active.setAttribute('data-active', '')
+    const r = active.getBoundingClientRect()
+    const p = pane.getBoundingClientRect()
+    if (scroll && (r.top < p.top || r.bottom > p.bottom))
+      pane.scrollTop += r.top - p.top - p.height / 3
+  }
+
+  // Scroll the preview so the block at the top of the editor is at the top of
+  // the preview: map editor y -> preview y through (line top, block top) anchors.
+  // The hidden mirror wraps text exactly like the textarea to find line tops.
+  function syncScroll() {
+    const ta = textRef.current
+    const pane = paneRef.current
+    const mirror = mirrorRef.current
+    if (!ta || !pane || !mirror || !pane.offsetParent) return
+    mirror.style.width = `${ta.clientWidth}px`
+    const paneTop = pane.getBoundingClientRect().top - pane.scrollTop
+    const pts: [number, number][] = [[0, 0]]
+    for (const el of blocks()) {
+      const lineEl = mirror.children[Number(el.dataset.line) - 1] as HTMLElement | undefined
+      if (lineEl) pts.push([lineEl.offsetTop, el.getBoundingClientRect().top - paneTop])
+    }
+    pts.push([ta.scrollHeight - ta.clientHeight, pane.scrollHeight - pane.clientHeight])
+    pts.sort((a, b) => a[0] - b[0])
+    const y = ta.scrollTop
+    const i = Math.max(
+      1,
+      pts.findIndex(([x]) => x > y)
+    )
+    const [x0, y0] = pts[i - 1]
+    const [x1, y1] = pts[i] ?? pts[i - 1]
+    pane.scrollTop = x1 > x0 ? y0 + ((y - x0) / (x1 - x0)) * (y1 - y0) : y0
+  }
 
   if (token === null || !d) return null
   if (!token) return <Unlock onUnlock={setToken} />
@@ -190,6 +312,8 @@ export default function Write() {
         e + prefix.length,
       ]
     })
+  const insert = (text: string) =>
+    edit((v, s, e) => [v.slice(0, s) + text + v.slice(e), s + text.length, s + text.length])
 
   const addImages = async (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith('image/'))
@@ -200,10 +324,7 @@ export default function Write() {
       ...all,
       [id]: { ...all[id], images: { ...all[id].images, ...Object.fromEntries(entries) } },
     }))
-    edit((v, s, e) => {
-      const md = entries.map(([imgId]) => `\n![](img:${imgId})\n`).join('')
-      return [v.slice(0, s) + md + v.slice(e), s + md.length, s + md.length]
-    })
+    insert(entries.map(([imgId]) => `\n![](img:${imgId})\n`).join(''))
     setStatus('')
   }
 
@@ -251,20 +372,62 @@ export default function Write() {
     }
   }
 
+  const tools: [IconType, string, () => void][][] = [
+    [
+      [RiH2, 'Heading', () => linePrefix('## ')],
+      [RiH3, 'Subheading', () => linePrefix('### ')],
+    ],
+    [
+      [RiBold, 'Bold (Ctrl+B)', () => wrap('**', '**', 'bold')],
+      [RiItalic, 'Italic (Ctrl+I)', () => wrap('_', '_', 'italic')],
+      [RiCodeLine, 'Inline code', () => wrap('`', '`', 'code')],
+      [RiLink, 'Link (Ctrl+K)', () => wrap('[', '](https://)', 'link')],
+    ],
+    [
+      [RiDoubleQuotesL, 'Quote', () => linePrefix('> ')],
+      [RiListUnordered, 'Bulleted list', () => linePrefix('- ')],
+      [RiListOrdered, 'Numbered list', () => linePrefix('1. ')],
+      [RiCodeBoxLine, 'Code block', () => wrap('\n```\n', '\n```\n', 'code')],
+      [RiSeparator, 'Divider', () => insert('\n\n---\n\n')],
+    ],
+    [
+      [RiImageAddLine, 'Image', () => fileRef.current?.click()],
+      [RiFileList2Line, 'Table of contents', () => insert(TOC_BLOCK)],
+    ],
+  ]
+  const shortcuts: Record<string, () => void> = {
+    b: tools[1][0][2],
+    i: tools[1][1][2],
+    k: tools[1][3][2],
+  }
+
   const sorted = Object.values(drafts).sort((a, b) => b.updated - a.updated)
   const field =
     'w-full rounded-md border border-gray-200 bg-transparent px-3 py-2 text-base focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700'
   const btn =
-    'rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+    'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
+  const editorText = 'text-lg leading-relaxed whitespace-pre-wrap break-words'
 
   return (
     <>
       <WriteHead title="Write" />
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 pb-10 sm:px-6">
-        <header className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-black/90 sm:-mx-6 sm:px-6">
+      <style>{`
+        .write-preview [data-active] {
+          background: rgb(222 29 141 / 0.09);
+          box-shadow: 0 0 0 0.5rem rgb(222 29 141 / 0.09);
+          border-radius: 0.2rem;
+        }
+        .write-preview [data-line] { transition: background 0.15s, box-shadow 0.15s; }
+      `}</style>
+      {/* Fixed-height app shell: each pane scrolls on its own so they can be synced. */}
+      <div
+        className="mx-auto flex h-screen max-w-7xl flex-col px-4 sm:px-6"
+        style={{ height: '100dvh' }}
+      >
+        <header className="-mx-4 flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 px-4 py-2.5 dark:border-gray-800 sm:-mx-6 sm:px-6">
           <select
             aria-label="Drafts"
-            className="min-w-0 max-w-[45vw] flex-1 rounded-md border-gray-200 bg-transparent py-1.5 text-sm dark:border-gray-700 sm:max-w-xs sm:flex-none"
+            className="mr-1 min-w-0 max-w-[40vw] flex-1 rounded-lg border-gray-200 bg-transparent py-1.5 text-sm dark:border-gray-700 sm:max-w-xs sm:flex-none"
             value={id}
             onChange={(e) => setId(e.target.value)}
           >
@@ -276,16 +439,19 @@ export default function Write() {
           </select>
           <button
             className={btn}
+            title="New draft"
             onClick={() => {
               const n = newDraft()
               setDrafts((all) => ({ ...all, [n.id]: n }))
               setId(n.id)
             }}
           >
-            New
+            <RiAddLine size={18} />
+            <span className="hidden sm:inline">New</span>
           </button>
           <button
             className={btn}
+            title="Delete draft"
             onClick={() => {
               if (!confirm(`Delete draft "${d.title || 'Untitled'}"? This can't be undone.`)) return
               const { [id]: _removed, ...rest } = drafts // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -295,173 +461,194 @@ export default function Write() {
               setId(next.id)
             }}
           >
-            Delete
+            <RiDeleteBinLine size={18} />
+            <span className="hidden sm:inline">Discard</span>
           </button>
-          <div className="ml-auto flex items-center gap-2">
-            <Link href="/write/posts" className={btn}>
-              Posts
+          <div className="ml-auto flex items-center gap-1">
+            <Link href="/write/posts" className={btn} title="Manage posts">
+              <RiArticleLine size={18} />
+              <span className="hidden sm:inline">Posts</span>
             </Link>
-            <button className={btn} onClick={lock}>
-              Lock
+            <button className={btn} onClick={lock} title="Forget token on this device">
+              <RiLockLine size={18} />
+              <span className="hidden sm:inline">Lock</span>
             </button>
             <button
               disabled={busy}
               onClick={publish}
-              className="rounded-md bg-primary-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-600 disabled:opacity-50"
+              className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600 active:scale-95 disabled:opacity-50"
             >
-              {busy ? 'Publishing…' : 'Publish'}
+              <RiSendPlaneFill size={16} />
+              {busy ? 'Publishing…' : d.origSlug ? 'Update' : 'Publish'}
             </button>
           </div>
         </header>
 
-        {(status || storageError) && (
-          <p className="mt-3 break-words rounded-md bg-gray-100 px-3 py-2 text-sm dark:bg-gray-900">
-            {storageError &&
-              'Browser storage is full; this draft is NOT being saved. Publish or delete old drafts. '}
-            {status}
-          </p>
-        )}
-
-        <input
-          className="mt-6 w-full border-0 bg-transparent p-0 text-3xl font-extrabold tracking-tight placeholder-gray-300 focus:ring-0 dark:placeholder-gray-700 sm:text-4xl"
-          placeholder="Title"
-          value={d.title}
-          onChange={(e) => update({ title: e.target.value })}
-        />
-
-        <details className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          <summary className="cursor-pointer select-none">
-            /blog/{slugOf(d) || '…'} · {d.date}
-            {d.tags && ` · ${d.tags}`}
-            {d.origSlug && ' · editing live post'}
-          </summary>
-          {d.raw && (
-            <p className="mt-2 text-xs">
-              This is the post&apos;s MDX source: {'{'} and &lt; are not escaped, so use them as
-              MDX.
+        <div className="shrink-0">
+          {(status || storageError) && (
+            <p className="mt-3 break-words rounded-md bg-gray-100 px-3 py-2 text-sm dark:bg-gray-900">
+              {storageError &&
+                'Browser storage is full; this draft is NOT being saved. Publish or delete old drafts. '}
+              {status}
             </p>
           )}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label>
-              Slug
-              <input
-                className={field}
-                placeholder={kebabCase(d.title)}
-                value={d.slug}
-                onChange={(e) => update({ slug: e.target.value })}
-              />
-            </label>
-            <label>
-              Date
-              <input
-                type="date"
-                className={field}
-                value={d.date}
-                onChange={(e) => update({ date: e.target.value })}
-              />
-            </label>
-            <label>
-              Tags (comma separated)
-              <input
-                className={field}
-                value={d.tags}
-                onChange={(e) => update({ tags: e.target.value })}
-              />
-            </label>
-            <label className="flex items-center gap-2 self-end pb-2">
-              <input
-                type="checkbox"
-                className="rounded"
-                checked={d.toc}
-                onChange={(e) => update({ toc: e.target.checked })}
-              />
-              Table of contents
-            </label>
-            <label className="sm:col-span-2">
-              Summary
-              <textarea
-                rows={2}
-                className={field}
-                value={d.summary}
-                onChange={(e) => update({ summary: e.target.value })}
-              />
-            </label>
-          </div>
-        </details>
 
-        <div className="mt-4 flex items-center gap-1 border-b border-gray-200 pb-2 dark:border-gray-800">
-          <div className="flex flex-wrap gap-1">
-            <button className={btn} onClick={() => linePrefix('## ')} title="Heading">
-              H
-            </button>
-            <button className={`${btn} font-bold`} onClick={() => wrap('**', '**', 'bold')}>
-              B
-            </button>
-            <button className={`${btn} italic`} onClick={() => wrap('_', '_', 'italic')}>
-              I
-            </button>
-            <button className={btn} onClick={() => wrap('[', '](https://)', 'link')}>
-              Link
-            </button>
-            <button className={btn} onClick={() => linePrefix('> ')}>
-              Quote
-            </button>
-            <button className={btn} onClick={() => wrap('\n```\n', '\n```\n', 'code')}>
-              Code
-            </button>
-            <button className={btn} onClick={() => fileRef.current?.click()}>
-              Image
-            </button>
-          </div>
-          <div className="ml-auto flex rounded-md bg-gray-100 p-0.5 text-sm dark:bg-gray-900 lg:hidden">
-            {(['write', 'preview'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`rounded px-3 py-1 capitalize ${
-                  tab === t ? 'bg-white shadow dark:bg-gray-700' : 'text-gray-500'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
           <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-            onChange={(e) => {
-              addImages(Array.from(e.target.files ?? []))
-              e.target.value = ''
-            }}
+            className="mt-5 w-full border-0 bg-transparent p-0 text-3xl font-extrabold tracking-tight placeholder-gray-300 focus:ring-0 dark:placeholder-gray-700 sm:text-4xl"
+            placeholder="Title"
+            value={d.title}
+            onChange={(e) => update({ title: e.target.value })}
           />
+
+          <details className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <summary className="cursor-pointer select-none">
+              /blog/{slugOf(d) || '…'} · {d.date}
+              {d.tags && ` · ${d.tags}`}
+              {d.origSlug && ' · editing live post'}
+            </summary>
+            {d.raw && (
+              <p className="mt-2 text-xs">
+                This is the post&apos;s MDX source: {'{'} and &lt; are not escaped, so use them as
+                MDX.
+              </p>
+            )}
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label>
+                Slug
+                <input
+                  className={field}
+                  placeholder={kebabCase(d.title)}
+                  value={d.slug}
+                  onChange={(e) => update({ slug: e.target.value })}
+                />
+              </label>
+              <label>
+                Date
+                <input
+                  type="date"
+                  className={field}
+                  value={d.date}
+                  onChange={(e) => update({ date: e.target.value })}
+                />
+              </label>
+              <label>
+                Tags (comma separated)
+                <input
+                  className={field}
+                  value={d.tags}
+                  onChange={(e) => update({ tags: e.target.value })}
+                />
+              </label>
+              <label className="sm:col-span-3">
+                Summary
+                <textarea
+                  rows={2}
+                  className={field}
+                  value={d.summary}
+                  onChange={(e) => update({ summary: e.target.value })}
+                />
+              </label>
+            </div>
+          </details>
+
+          <div className="mt-3 flex items-center gap-2 border-b border-gray-200 pb-3 dark:border-gray-800">
+            <div className="flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 shadow-sm dark:border-gray-800 dark:bg-gray-900/60">
+              {tools.map((group, gi) => (
+                <Fragment key={gi}>
+                  {gi > 0 && <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />}
+                  {group.map(([Icon, label, action]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      title={label}
+                      aria-label={label}
+                      // keep the textarea's selection when clicking a tool
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={action}
+                      className="grid h-9 w-9 place-items-center rounded-lg text-gray-500 transition hover:bg-white hover:text-primary-500 hover:shadow-sm active:scale-90 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary-400"
+                    >
+                      <Icon size={18} />
+                    </button>
+                  ))}
+                </Fragment>
+              ))}
+            </div>
+            <div className="ml-auto flex shrink-0 rounded-lg bg-gray-100 p-0.5 text-sm dark:bg-gray-900 lg:hidden">
+              {(['write', 'preview'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`rounded-md px-3 py-1 capitalize ${
+                    tab === t ? 'bg-white shadow dark:bg-gray-700' : 'text-gray-500'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                addImages(Array.from(e.target.files ?? []))
+                e.target.value = ''
+              }}
+            />
+          </div>
         </div>
 
-        <div className="mt-4 grid flex-1 gap-8 lg:grid-cols-2">
-          <textarea
-            ref={textRef}
+        <div className="grid min-h-0 flex-1 gap-10 pt-4 lg:grid-cols-2">
+          <div
             className={`${
               tab === 'write' ? 'block' : 'hidden'
-            } min-h-[60vh] w-full resize-none border-0 bg-transparent p-0 text-lg leading-relaxed focus:ring-0 lg:block`}
-            placeholder="Write in Markdown. Paste or drop images anywhere."
-            value={d.body}
-            onChange={(e) => update({ body: e.target.value })}
-            onPaste={(e) => {
-              const files = Array.from(e.clipboardData.files)
-              if (files.some((f) => f.type.startsWith('image/'))) {
+            } relative min-h-0 overflow-hidden lg:block`}
+          >
+            <textarea
+              ref={textRef}
+              className={`${editorText} h-full w-full resize-none border-0 bg-transparent p-0 pb-[40vh] focus:ring-0`}
+              placeholder="Write in Markdown. Paste or drop images anywhere."
+              value={d.body}
+              onChange={(e) => update({ body: e.target.value })}
+              onSelect={() => highlight(true)}
+              onScroll={syncScroll}
+              onKeyDown={(e) => {
+                const action = (e.ctrlKey || e.metaKey) && shortcuts[e.key.toLowerCase()]
+                if (!action) return
                 e.preventDefault()
-                addImages(files)
-              }
-            }}
-            onDrop={(e) => {
-              if (!e.dataTransfer.files.length) return
-              e.preventDefault()
-              addImages(Array.from(e.dataTransfer.files))
-            }}
-          />
-          <div className={`${tab === 'preview' ? 'block' : 'hidden'} min-w-0 lg:block`}>
+                action()
+              }}
+              onPaste={(e) => {
+                const files = Array.from(e.clipboardData.files)
+                if (files.some((f) => f.type.startsWith('image/'))) {
+                  e.preventDefault()
+                  addImages(files)
+                }
+              }}
+              onDrop={(e) => {
+                if (!e.dataTransfer.files.length) return
+                e.preventDefault()
+                addImages(Array.from(e.dataTransfer.files))
+              }}
+            />
+            <div
+              ref={mirrorRef}
+              aria-hidden
+              className={`${editorText} pointer-events-none invisible absolute left-0 top-0`}
+            >
+              {d.body.split('\n').map((l, i) => (
+                <div key={i}>{l || '\u00a0'}</div>
+              ))}
+            </div>
+          </div>
+          <div
+            ref={paneRef}
+            className={`${
+              tab === 'preview' ? 'block' : 'hidden'
+            } write-preview min-h-0 min-w-0 overflow-y-auto pb-[40vh] pr-3 lg:block`}
+          >
             {preview.error && (
               <pre className="mb-4 whitespace-pre-wrap rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
                 {preview.error}
@@ -469,14 +656,7 @@ export default function Write() {
             )}
             <article className="prose prose-lg max-w-none dark:prose-dark">
               {preview.Content && (
-                <preview.Content
-                  toc={[]}
-                  components={{
-                    TOCInline: () => <p className="italic text-gray-500">[Table of contents]</p>,
-                    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-                    Image: (p: Record<string, string>) => <img {...p} />,
-                  }}
-                />
+                <preview.Content toc={preview.toc} components={previewComponents} />
               )}
             </article>
           </div>

@@ -4,30 +4,34 @@ import {
   Draft,
   DRAFTS_KEY,
   gh,
+  joinPost,
   load,
   newDraft,
   REPO,
-  TOC_BLOCK,
+  splitPost,
   Unlock,
   useToken,
   WriteHead,
 } from '@/components/WriteKit'
-import yaml from 'js-yaml'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import {
+  RiAddLine,
+  RiArchiveLine,
+  RiArrowLeftLine,
+  RiDeleteBinLine,
+  RiEditLine,
+  RiExternalLinkLine,
+  RiInboxUnarchiveLine,
+  RiLockLine,
+} from 'react-icons/ri'
 
 type Post = { slug: string; text: string; draft?: Draft; error?: string }
 
 // Parse a repo post into an editor draft. The body is kept as raw MDX.
 function toDraft(slug: string, text: string): Draft {
-  const m = text.replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-  if (!m) throw new Error('No frontmatter')
-  // JSON schema keeps dates as strings instead of Date objects.
-  const fm = yaml.load(m[1], { schema: yaml.JSON_SCHEMA }) as Record<string, unknown>
-  let body = m[2].replace(/^\n+/, '').trimEnd()
-  const toc = body.startsWith(TOC_BLOCK)
-  if (toc) body = body.slice(TOC_BLOCK.length)
+  const { fm, body } = splitPost(text)
   const now = Date.now()
   return {
     ...newDraft(),
@@ -36,8 +40,7 @@ function toDraft(slug: string, text: string): Draft {
     date: String(fm.date ?? '').slice(0, 10),
     tags: Array.isArray(fm.tags) ? fm.tags.join(', ') : '',
     summary: String(fm.summary ?? ''),
-    toc,
-    body,
+    body: body.replace(/^\n+/, '').trimEnd(),
     raw: true,
     fm,
     origSlug: slug,
@@ -136,29 +139,73 @@ export default function Posts() {
     }
   }
 
+  // Only the frontmatter changes; the body is written back byte for byte.
+  const toggleArchive = async (post: Post) => {
+    const { fm, body } = splitPost(post.text)
+    const archive = fm.archived !== true
+    if (archive) fm.archived = true
+    else delete fm.archived
+    const text = joinPost(fm, body)
+    setBusy(true)
+    try {
+      setStatus(`${archive ? 'Archiving' : 'Unarchiving'} ${post.slug}…`)
+      const url = await commitFiles(
+        token,
+        [{ path: `data/blog/${post.slug}.mdx`, content: text, encoding: 'utf-8' }],
+        `${archive ? 'archive' : 'unarchive'}: ${post.slug}`
+      )
+      setPosts(
+        (all) =>
+          all?.map((p) =>
+            p.slug === post.slug ? { slug: p.slug, text, draft: toDraft(p.slug, text) } : p
+          ) ?? null
+      )
+      // Keep local drafts of this post in step, or publishing one would undo this.
+      const drafts = load<Record<string, Draft>>(DRAFTS_KEY, {})
+      for (const x of Object.values(drafts)) {
+        if (x.origSlug !== post.slug || !x.fm) continue
+        if (archive) x.fm.archived = true
+        else delete x.fm.archived
+      }
+      try {
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts))
+      } catch {
+        // storage full: that draft keeps its old flag
+      }
+      setStatus(
+        `${archive ? 'Archived' : 'Unarchived'} ${post.slug}. Updates once Vercel deploys. ${url}`
+      )
+    } catch (e) {
+      setStatus(`Failed: ${(e as Error).message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const q = query.toLowerCase()
   const shown = posts?.filter((p) =>
     [p.slug, p.draft?.title, p.draft?.tags].some((s) => s?.toLowerCase().includes(q))
   )
   const btn =
-    'rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800'
+    'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6">
       <WriteHead title="Posts" />
       <header className="sticky top-0 z-10 -mx-4 flex items-center gap-2 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-black/90 sm:-mx-6 sm:px-6">
         <Link href="/write" className={btn}>
-          ← Editor
+          <RiArrowLeftLine size={18} /> Editor
         </Link>
-        <div className="ml-auto flex items-center gap-2">
-          <button className={btn} onClick={lock}>
-            Lock
+        <div className="ml-auto flex items-center gap-1">
+          <button className={btn} onClick={lock} title="Forget token on this device">
+            <RiLockLine size={18} />
+            <span className="hidden sm:inline">Lock</span>
           </button>
           <Link
             href="/write?new"
-            className="rounded-md bg-primary-500 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-600"
+            className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600 active:scale-95"
           >
-            New post
+            <RiAddLine size={18} /> New post
           </Link>
         </div>
       </header>
@@ -204,19 +251,34 @@ export default function Posts() {
                   {p.error && <span className="text-red-600">can&apos;t parse: {p.error}</span>}
                 </p>
               </div>
-              <div className="-ml-3 flex gap-1 sm:ml-0">
+              <div className="-ml-2.5 flex flex-wrap gap-0.5 sm:ml-0">
                 <a href={`/blog/${p.slug}`} target="_blank" rel="noreferrer" className={btn}>
-                  View
+                  <RiExternalLinkLine size={17} /> View
                 </a>
                 <button className={btn} disabled={!p.draft} onClick={() => edit(p)}>
-                  Edit
+                  <RiEditLine size={17} /> Edit
+                </button>
+                <button
+                  className={btn}
+                  disabled={busy || !p.draft}
+                  onClick={() => toggleArchive(p)}
+                >
+                  {p.draft?.fm?.archived === true ? (
+                    <>
+                      <RiInboxUnarchiveLine size={17} /> Unarchive
+                    </>
+                  ) : (
+                    <>
+                      <RiArchiveLine size={17} /> Archive
+                    </>
+                  )}
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => remove(p.slug)}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
+                  className={`${btn} !text-red-600 hover:!bg-red-50 dark:hover:!bg-red-950`}
                 >
-                  Delete
+                  <RiDeleteBinLine size={17} /> Delete
                 </button>
               </div>
             </li>

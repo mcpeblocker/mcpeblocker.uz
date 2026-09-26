@@ -1,3 +1,4 @@
+import yaml from 'js-yaml'
 import Head from 'next/head'
 import { FormEvent, useEffect, useState } from 'react'
 
@@ -19,7 +20,7 @@ export type Draft = {
   date: string
   tags: string
   summary: string
-  toc: boolean
+  toc?: boolean // legacy: TOC now lives in the body as TOC_BLOCK
   body: string
   images: Record<string, string>
   updated: number
@@ -38,11 +39,22 @@ export const newDraft = (): Draft => ({
   date: today(),
   tags: '',
   summary: '',
-  toc: false,
   body: '',
   images: {},
   updated: Date.now(),
 })
+
+// A post file is `---\n<yaml>\n---\n<mdx>`. JSON schema keeps dates as strings.
+export function splitPost(text: string) {
+  const m = text.replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  if (!m) throw new Error('No frontmatter')
+  return {
+    fm: yaml.load(m[1], { schema: yaml.JSON_SCHEMA }) as Record<string, unknown>,
+    body: m[2],
+  }
+}
+export const joinPost = (fm: Record<string, unknown>, body: string) =>
+  `---\n${yaml.dump(fm, { lineWidth: -1, flowLevel: 1 })}---\n${body}`
 
 export const load = <T,>(key: string, fallback: T): T => {
   try {
