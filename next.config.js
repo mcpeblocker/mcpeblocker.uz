@@ -7,7 +7,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 // You might need to insert additional domains in script-src if you are using external services
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' giscus.app https://cdn.logrocket.io https://cdn.lr-ingest.io https://cdn.lr-in.com https://cdn.lr-in-prod.com;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.logrocket.io https://cdn.lr-ingest.io https://cdn.lr-in.com https://cdn.lr-in-prod.com;
   child-src 'self' blob:; 
   worker-src 'self' blob:; 
   style-src 'self' 'unsafe-inline';
@@ -15,7 +15,7 @@ const ContentSecurityPolicy = `
   media-src 'none';
   connect-src * https://*.logrocket.io https://*.lr-ingest.io https://*.logrocket.com https://*.lr-in.com https://*.lr-in-prod.com;
   font-src 'self';
-  frame-src giscus.app
+  frame-src https://challenges.cloudflare.com
 `
 
 const securityHeaders = [

@@ -1,14 +1,16 @@
-import { writeFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 import globby from 'globby'
 import prettier from 'prettier'
 import siteMetadata from '../data/siteMetadata.js'
-import { allBlogs } from '../.contentlayer/generated/index.mjs'
+// Read contentlayer's JSON directly: its index.mjs uses `import ... assert`,
+// which Node 22+ rejects (this is what broke `yarn build` locally).
+const allBlogs = JSON.parse(readFileSync('./.contentlayer/generated/Blog/_index.json', 'utf8'))
 
 async function generate() {
   const prettierConfig = await prettier.resolveConfig('./.prettierrc.js')
   const contentPages = allBlogs
+    .filter((x) => x.draft !== true && !x.canonicalUrl) // filter before mapping to URLs
     .map((x) => `/${x._raw.flattenedPath}`)
-    .filter((x) => !x.draft && !x.canonicalUrl)
   const pages = await globby([
     'pages/*.{js|tsx}',
     'public/tags/**/*.xml',

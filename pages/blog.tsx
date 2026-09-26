@@ -1,6 +1,7 @@
 import LayoutWrapper from '@/components/LayoutWrapper'
 import { PageSEO } from '@/components/SEO'
 import siteMetadata from '@/data/siteMetadata'
+import NewsletterForm from '@/components/NewsletterForm'
 import ListLayout from '@/layouts/ListLayout'
 import { allCoreContent, sortedBlogPost } from '@/lib/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
@@ -49,6 +50,7 @@ export default function Blog({
           Archive &rarr;
         </Link>
       </div>
+      <NewsletterForm />
     </LayoutWrapper>
   )
 }
