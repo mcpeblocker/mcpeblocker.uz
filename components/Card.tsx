@@ -1,5 +1,6 @@
 import Image from './Image'
 import Link from './Link'
+import kebabCase from '@/lib/utils/kebabCase'
 
 interface CardProps {
   title: string
@@ -11,8 +12,13 @@ interface CardProps {
 
 export default function Card({ title, description, imgSrc, href, links }: CardProps) {
   return (
-    <div className="p-2 md:w-1/2 md" style={{ maxWidth: '544px' }}>
-      <div className="h-full overflow-hidden hover:bg-gray-200 hover:bg-opacity-20 rounded-md border-opacity-60 dark:border-gray-700">
+    // id = anchor that activities link to (/projects#<kebab-title>)
+    <div
+      id={kebabCase(title)}
+      className="group scroll-mt-24 p-2 md:w-1/2 md"
+      style={{ maxWidth: '544px' }}
+    >
+      <div className="h-full overflow-hidden group-target:bg-primary-100/50 group-target:ring-4 group-target:ring-primary-300/60 dark:group-target:bg-primary-900/30 hover:bg-gray-200 hover:bg-opacity-20 rounded-md border-opacity-60 dark:border-gray-700">
         {imgSrc &&
           (href ? (
             <Link href={href} aria-label={`Link to ${title}`}>

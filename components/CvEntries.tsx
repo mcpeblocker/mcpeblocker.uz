@@ -10,8 +10,9 @@ export default function CvEntries({ entries }: { entries: CvEntry[] }) {
     <ol className="space-y-9">
       {entries.map((e) => (
         <li
-          key={`${e.org}-${e.title}-${e.start}`}
-          className="grid gap-1 sm:grid-cols-[11rem_1fr] sm:gap-8"
+          key={e.id}
+          id={e.id}
+          className="grid scroll-mt-24 gap-1 rounded-lg sm:grid-cols-[11rem_1fr] sm:gap-8 target:bg-primary-100/50 target:ring-8 target:ring-primary-100/50 dark:target:bg-primary-900/30 dark:target:ring-primary-900/30"
         >
           <div className="text-sm text-gray-500 dark:text-gray-400 sm:pt-1">
             <p className="font-medium">{formatPeriod({ ...e, ongoing: !e.end })}</p>

@@ -8,6 +8,7 @@ import entities from '@/data/entities'
 import projectsData, { projectCategories } from '@/data/projectsData'
 import siteMetadata from '@/data/siteMetadata'
 import { formatPeriod, sortActivities } from '@/lib/utils/activities'
+import kebabCase from '@/lib/utils/kebabCase'
 import { sortedBlogPost } from '@/lib/utils/contentlayer'
 import { allAuthors, allBlogs } from 'contentlayer/generated'
 import { useMDXComponent } from 'next-contentlayer/hooks'
@@ -130,7 +131,7 @@ export default function SimpleView() {
             <Section key={title} title={title}>
               <ul className="space-y-6">
                 {entries.map((e) => (
-                  <li key={`${e.org}-${e.title}-${e.start}`}>
+                  <li key={e.id} id={e.id} className="scroll-mt-8">
                     <p className="font-medium text-gray-900">
                       {e.title},{' '}
                       <Link href={`/at/${e.org}`} className="text-sky-700 hover:underline">
@@ -218,7 +219,11 @@ export default function SimpleView() {
                     </h3>
                     <div className="space-y-8">
                       {items.map((project) => (
-                        <div key={project.title} className="flex flex-col gap-4 sm:flex-row">
+                        <div
+                          key={project.title}
+                          id={kebabCase(project.title)}
+                          className="flex scroll-mt-8 flex-col gap-4 sm:flex-row"
+                        >
                           {project.imgSrc && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img

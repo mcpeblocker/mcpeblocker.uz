@@ -96,6 +96,14 @@ const projectsData: Project[] = [
     tag: ['typescript', 'nextjs', 'ai'],
     href: 'https://gleamo.app',
   },
+  {
+    title: 'Pockets',
+    description: `Make it extremely easy for willing people to share expenses transparently and settle them.`,
+    category: 'entrepreneurship',
+    imgSrc: '/static/images/project/pockets.png',
+    tag: ['typescript', 'nextjs', 'tailwindcss', 'supabase'],
+    href: 'https://pockets.uz',
+  },
   // Not yet publicized.
   // {
   //   title: 'Noti Budget',
@@ -110,15 +118,6 @@ const projectsData: Project[] = [
   //   category: 'web',
   //   imgSrc: '/static/images/project/9rip-fit.png',
   //   tag: ['javascript', 'nextjs', 'tailwindcss', 'health'],
-  // },
-  // currently inactive.
-  // {
-  //   title: 'Pockets',
-  //   description: `Make it extremely easy for willing people to share expenses transparently and settle them.`,
-  //   category: 'web',
-  //   imgSrc: '/static/images/project/pockets.png',
-  //   tag: ['typescript', 'nextjs', 'tailwindcss', 'supabase'],
-  //   href: 'https://pockets.uz',
   // },
   {
     title: 'shashka-uz',

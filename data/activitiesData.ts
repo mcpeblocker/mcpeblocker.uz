@@ -77,19 +77,21 @@ export type Activity = {
   end?: string // 'YYYY-MM' or 'YYYY'
   ongoing?: boolean // renders "– Present"
   upcoming?: boolean // future-dated ("will be …"); shows an "Upcoming" badge
+  cv?: string // id of the matching entry in data/cvData.ts → links to /cv#id
+  project?: string // title of the matching project in data/projectsData.ts → links to its card
   href?: string
 }
 
 const activitiesData: Activity[] = [
   // Academic
   {
-    title: 'Exchange student at EPFL',
+    title: 'Exchange student at @EPFL',
     category: 'academic',
     tags: ['exchange', 'epfl'],
     start: '2026-09',
     end: '2027-01',
     ongoing: true,
-    href: 'https://www.epfl.ch',
+    cv: 'epfl-exchange',
   },
   {
     title: 'Intensive French Language Program at EPFL',
@@ -104,11 +106,12 @@ const activitiesData: Activity[] = [
     start: '2025-01',
   },
   {
-    title: 'Computer Science & Electrical Engineering double major at KAIST',
+    title: 'Computer Science & Electrical Engineering double major at @KAIST',
     category: 'academic',
     tags: ['computer-science', 'electrical-engineering', 'kaist'],
     start: '2023',
     ongoing: true,
+    cv: 'kaist-bs',
   },
 
   // Quantum
@@ -178,6 +181,7 @@ const activitiesData: Activity[] = [
     tags: ['entrepreneurship', 'startup'],
     sdgs: [4, 10],
     start: '2026-06',
+    project: 'Gleamo',
   },
   {
     title: 'KAIST-Silicon Valley Global Entrepreneurship Summer School',
@@ -187,6 +191,7 @@ const activitiesData: Activity[] = [
     sdgs: [5, 8],
     start: '2025-06',
     href: 'https://kgep.kaist.ac.kr/pages/sub/sub_0201',
+    project: 'Guardian Angel',
   },
   {
     title: 'KAIST Lean Startup Program',
@@ -198,11 +203,12 @@ const activitiesData: Activity[] = [
 
   // Research
   {
-    title: 'Collaborative Social Technologies Lab at KAIST',
+    title: '@CSTLab at @KAIST',
     category: 'research',
     tags: ['research', 'cognitive-intelligence', 'ai-agents'],
     start: '2026-01',
     end: '2026-06',
+    cv: 'cstl-research-intern',
   },
 
   // Agriculture
@@ -212,6 +218,7 @@ const activitiesData: Activity[] = [
     tags: ['research', 'agriculture', 'optimization', 'quantum-computing'],
     sdgs: [2, 6, 12, 13],
     start: '2026-07',
+    project: 'QAOA for Rotational Irrigation Scheduling',
   },
   {
     title:
@@ -235,12 +242,14 @@ const activitiesData: Activity[] = [
     tags: ['compiler', 'runtime', 'rust'],
     href: 'https://imb.mcpeblocker.uz',
     ongoing: true,
+    project: 'IMB (I Make Bot)',
   },
   {
     title: 'Pockets — shared asset management platform for group activities',
     category: 'software',
     tags: ['fullstack', 'nextjs', 'supabase', 'tailwindcss'],
     start: '2026-02',
+    project: 'Pockets',
   },
   {
     title: 'Whodunnit — simulation of mystery novels for immersive reading experience',
@@ -255,6 +264,7 @@ const activitiesData: Activity[] = [
     tags: ['fullstack', 'nextjs', 'nodejs', 'socket.io'],
     start: '2024-09',
     href: 'https://shashka.uz',
+    project: 'shashka-uz',
   },
   {
     title: 'telegraf-pagination — pagination interface plugin for Telegraf.js bots',
@@ -262,6 +272,7 @@ const activitiesData: Activity[] = [
     tags: ['nodejs', 'telegraf.js', 'open-source'],
     start: '2022-09',
     href: 'https://npmjs.com/package/telegraf-pagination',
+    project: 'telegraf-pagination',
   },
   {
     title: 'Looina (startup) — browser-based operating system for custom user workflows',
@@ -278,6 +289,8 @@ const activitiesData: Activity[] = [
     start: '2025-01',
     end: '2026-03',
     href: 'https://play.google.com/store/apps/details?id=com.teambl.teambl&hl=en',
+    cv: 'teambl-software-engineer',
+    project: 'teambl',
   },
 
   // Course Projects
@@ -295,6 +308,7 @@ const activitiesData: Activity[] = [
     start: '2024-03',
     end: '2024-06',
     href: 'https://github.com/west-sea/bookswap-mobile',
+    project: 'BookSwap',
   },
   {
     title: 'Hello KAISTian! — TinyML wake-word detection on Raspberry Pi microphone input',
@@ -302,6 +316,7 @@ const activitiesData: Activity[] = [
     tags: ['intro-to-electronics-design-lab', 'tinyml', 'tensorflow-lite', 'raspberry-pi'],
     start: '2026-03',
     end: '2026-06',
+    project: 'Hello KAISTian',
   },
 
   // Certifications
@@ -389,11 +404,11 @@ const activitiesData: Activity[] = [
     start: '2024',
   },
   {
-    title: 'Graduated from the Presidential School in Khiva',
+    title: 'Graduated from the @PSK',
     category: 'academic',
     tags: ['high-school'],
     start: '2023-05',
-    href: 'https://portal.piima.uz/en/schools/presidental-schools/4',
+    cv: 'psk-a-levels',
   },
 
   // Research
@@ -416,18 +431,20 @@ const activitiesData: Activity[] = [
 
   // Software Development
   {
-    title: 'Systems Engineer Intern at OnSquare, Seoul',
+    title: 'Systems Engineer Intern at @OnSquare, Seoul',
     category: 'software',
     tags: ['internship', 'memory-leaks', 'tdd'],
     start: '2026-06',
     end: '2026-08',
+    cv: 'onsquare-2026',
   },
   {
-    title: 'Summer internship at OnSquare, Seoul',
+    title: 'Summer internship at @OnSquare, Seoul',
     category: 'software',
     tags: ['internship', 'typescript'],
     start: '2024-06',
     end: '2024-08',
+    cv: 'onsquare-2024',
   },
   {
     title: 'Deployed this website, mcpeblocker.uz',
@@ -442,6 +459,7 @@ const activitiesData: Activity[] = [
     tags: ['fullstack', 'api'],
     start: '2023',
     href: 'https://api.shashka.uz/docs',
+    project: 'shashka-uz',
   },
   {
     title: 'Contributed to the online multiplayer game shashka.uz',
@@ -449,6 +467,7 @@ const activitiesData: Activity[] = [
     tags: ['game', 'web'],
     start: '2022',
     href: 'https://shashka.uz',
+    project: 'shashka-uz',
   },
   {
     title:
@@ -466,13 +485,6 @@ const activitiesData: Activity[] = [
     start: '2026-10',
     upcoming: true,
     href: 'https://en.lausanne-marathon.com/',
-  },
-  {
-    title: 'Received so many rejections and put them on my Wall of Rejections',
-    category: 'personal',
-    tags: ['growth-mindset'],
-    start: '2025',
-    href: 'https://rejections.mcpeblocker.uz/profile/mcpeblocker?view=wall',
   },
   {
     title: 'Moved to South Korea for undergraduate studies at KAIST',

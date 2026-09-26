@@ -2,6 +2,7 @@
 // data/entities.ts, so each entry links to that organization's /at/ page.
 
 export type CvEntry = {
+  id: string // anchor on /cv; activities reference entries by it (Activity.cv)
   title: string
   org: string
   location: string
@@ -14,6 +15,7 @@ export type CvEntry = {
 
 export const education: CvEntry[] = [
   {
+    id: 'epfl-exchange',
     title: 'Exchange semester',
     org: 'epfl',
     location: 'Lausanne, Switzerland',
@@ -23,6 +25,7 @@ export const education: CvEntry[] = [
       'Quantum Computing, Software Enterprise, Hydrology, Machine Learning; French (A1); running, hiking.',
   },
   {
+    id: 'kaist-bs',
     title: 'B.S. in Computer Science & Electrical Engineering',
     org: 'kaist',
     location: 'Daejeon, South Korea',
@@ -31,6 +34,7 @@ export const education: CvEntry[] = [
       'Quantum Information/Software, Computer Systems, Entrepreneurship; Korean (A2); community development.',
   },
   {
+    id: 'psk-a-levels',
     title: 'Cambridge International A Levels',
     org: 'psk',
     location: 'Khiva, Uzbekistan',
@@ -42,6 +46,7 @@ export const education: CvEntry[] = [
 
 export const experience: CvEntry[] = [
   {
+    id: 'onsquare-2026',
     title: 'Systems Engineer Intern',
     org: 'onsquare',
     location: 'Seoul, South Korea',
@@ -53,6 +58,7 @@ export const experience: CvEntry[] = [
     ],
   },
   {
+    id: 'cstl-research-intern',
     title: 'Research Intern',
     org: 'cstl',
     location: 'Daejeon, South Korea',
@@ -65,6 +71,7 @@ export const experience: CvEntry[] = [
     skills: ['CoALA', 'LLM', 'Node.js', 'React', 'SQLite'],
   },
   {
+    id: 'teambl-software-engineer',
     title: 'Software Engineer',
     org: 'teambl',
     location: 'Remote, South Korea',
@@ -79,6 +86,7 @@ export const experience: CvEntry[] = [
     skills: ['Django', 'React Native', 'Expo', 'Socket.IO', 'ASGI', 'Redux', 'RTK Query', 'pytest'],
   },
   {
+    id: 'onsquare-2024',
     title: 'Software Engineer Intern',
     org: 'onsquare',
     location: 'Seoul, South Korea',
