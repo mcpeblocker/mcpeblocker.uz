@@ -1,51 +1,28 @@
+import {
+  BRANCH,
+  commitFiles,
+  Draft,
+  DRAFTS_KEY,
+  load,
+  newDraft,
+  newId,
+  REPO,
+  TOC_BLOCK,
+  Unlock,
+  useToken,
+  WriteHead,
+} from '@/components/WriteKit'
 import siteMetadata from '@/data/siteMetadata'
 import kebabCase from '@/lib/utils/kebabCase'
-import Head from 'next/head'
+import yaml from 'js-yaml'
+import Link from 'next/link'
 import { ComponentType, useEffect, useRef, useState } from 'react'
 
-// Private writing desk. Anyone can open /write, but nothing works without a
-// GitHub token that can push to the repo, so publishing is effectively owner-only.
-// Drafts (images included, as data URLs) live in localStorage only.
-
-const REPO = 'mcpeblocker/mcpeblocker.uz'
-const BRANCH = 'main'
 const AUTHOR = 'Alisher Ortiqov'
 const AUTHOR_URL = 'https://t.me/alisherortiqov'
 const MAX_IMG_WIDTH = 1600
-const TOKEN_KEY = 'write:token'
-const DRAFTS_KEY = 'write:drafts'
 const IMG_RE = /\(img:([\w-]+)\)/g
-const TOC_BLOCK =
-  '## Table of contents\n\n<TOCInline toc={props.toc} exclude="Table of contents" toHeading={2} indentDepth={2} />\n\n---\n\n'
 
-type Draft = {
-  id: string
-  title: string
-  slug: string
-  date: string
-  tags: string
-  summary: string
-  toc: boolean
-  body: string
-  images: Record<string, string>
-  updated: number
-  publishedAt?: number
-}
-
-const today = () => new Date().toISOString().slice(0, 10)
-const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
-const newDraft = (): Draft => ({
-  id: newId(),
-  title: '',
-  slug: '',
-  date: today(),
-  tags: '',
-  summary: '',
-  toc: false,
-  body: '',
-  images: {},
-  updated: Date.now(),
-})
 const slugOf = (d: Draft) => kebabCase(d.slug || d.title)
 const extOf = (dataUrl: string) => dataUrl.slice(11, dataUrl.indexOf(';')).split('+')[0]
 const imgPath = (slug: string, id: string, dataUrl: string) =>
@@ -63,25 +40,33 @@ const escapeMdx = (md: string) =>
 
 const buildBody = (d: Draft, src: (id: string) => string) =>
   (d.toc ? TOC_BLOCK : '') +
-  escapeMdx(d.body).replace(IMG_RE, (m, id) => (d.images[id] ? `(${src(id)})` : m))
+  (d.raw ? d.body : escapeMdx(d.body)).replace(IMG_RE, (m, id) =>
+    d.images[id] ? `(${src(id)})` : m
+  )
 
 const buildFile = (d: Draft) => {
   const slug = slugOf(d)
-  const tags = d.tags
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
-  // JSON strings are valid YAML scalars, so quotes/colons in titles are safe.
-  const fm = [
-    `title: ${JSON.stringify(d.title.trim())}`,
-    `date: '${d.date}'`,
-    `tags: ${JSON.stringify(tags)}`,
-    'draft: false',
-    `author: '${AUTHOR}'`,
-    `authorUrl: ${AUTHOR_URL}`,
-    `summary: ${JSON.stringify(d.summary.trim())}`,
-  ]
-  return `---\n${fm.join('\n')}\n---\n\n${buildBody(d, (id) => imgPath(slug, id, d.images[id]))}\n`
+  const base = d.fm ?? {
+    title: '',
+    date: '',
+    tags: [],
+    draft: false,
+    author: AUTHOR,
+    authorUrl: AUTHOR_URL,
+  }
+  // Spread keeps the original key order; untouched fields (archived, lastmod…) survive.
+  const fm = {
+    ...base,
+    title: d.title.trim(),
+    date: d.date,
+    tags: d.tags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean),
+    summary: d.summary.trim(),
+  }
+  const body = buildBody(d, (id) => imgPath(slug, id, d.images[id]))
+  return `---\n${yaml.dump(fm, { lineWidth: -1, flowLevel: 1 })}---\n\n${body}\n`
 }
 
 async function compile(source: string) {
@@ -92,45 +77,6 @@ async function compile(source: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mod = await evaluate(source, { ...(runtime as any) })
   return mod.default as ComponentType<Record<string, unknown>>
-}
-
-async function gh(token: string, path: string, init: RequestInit = {}) {
-  const res = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-  })
-  if (!res.ok) throw new Error(`GitHub ${res.status}: ${(await res.json()).message}`)
-  return res.json()
-}
-
-// One atomic commit for the post and all its images (Git Data API).
-async function commitFiles(
-  token: string,
-  files: { path: string; content: string; encoding: 'utf-8' | 'base64' }[],
-  message: string,
-  deletions: string[] = []
-) {
-  const post = (path: string, body: unknown) =>
-    gh(token, path, { method: 'POST', body: JSON.stringify(body) })
-  const ref = await gh(token, `/git/ref/heads/${BRANCH}`)
-  const parent = await gh(token, `/git/commits/${ref.object.sha}`)
-  const blobs = await Promise.all(
-    files.map((f) => post('/git/blobs', { content: f.content, encoding: f.encoding }))
-  )
-  const tree = await post('/git/trees', {
-    base_tree: parent.tree.sha,
-    tree: [
-      ...files.map((f, i) => ({ path: f.path, mode: '100644', type: 'blob', sha: blobs[i].sha })),
-      // sha: null removes the path from base_tree
-      ...deletions.map((path) => ({ path, mode: '100644', type: 'blob', sha: null })),
-    ],
-  })
-  const commit = await post('/git/commits', { message, tree: tree.sha, parents: [ref.object.sha] })
-  await gh(token, `/git/refs/heads/${BRANCH}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ sha: commit.sha }),
-  })
-  return commit.html_url as string
 }
 
 async function readImage(file: File): Promise<string> {
@@ -153,23 +99,14 @@ async function readImage(file: File): Promise<string> {
   return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', 0.85)
 }
 
-const load = <T,>(key: string, fallback: T): T => {
-  try {
-    return JSON.parse(localStorage.getItem(key) ?? '') ?? fallback
-  } catch {
-    return fallback
-  }
-}
-
 export default function Write() {
-  const [token, setToken] = useState<string | null>(null)
+  const { token, setToken, lock } = useToken()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
   const [id, setId] = useState('')
   const [tab, setTab] = useState<'write' | 'preview'>('write')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [storageError, setStorageError] = useState(false)
-  const [posts, setPosts] = useState<string[] | null>(null) // null = panel closed
   const [preview, setPreview] = useState<{
     Content?: ComponentType<Record<string, unknown>>
     error?: string
@@ -178,10 +115,10 @@ export default function Write() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setToken(load(TOKEN_KEY, ''))
     const saved = load<Record<string, Draft>>(DRAFTS_KEY, {})
+    const params = new URLSearchParams(location.search) // ?d=<draft id> | ?new
     const latest = Object.values(saved).sort((a, b) => b.updated - a.updated)[0]
-    const d = latest ?? newDraft()
+    const d = saved[params.get('d') ?? ''] ?? (params.has('new') ? null : latest) ?? newDraft()
     setDrafts({ ...saved, [d.id]: d })
     setId(d.id)
   }, [])
@@ -279,11 +216,14 @@ export default function Write() {
       setStatus('Checking…')
       await compile(previewSource) // the preview may be stale; never ship a broken build
       const filePath = `data/blog/${slug}.mdx`
-      const existing = await fetch(
-        `https://api.github.com/repos/${REPO}/contents/${filePath}?ref=${BRANCH}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      if (existing.ok && !confirm(`"${slug}" already exists on the site. Overwrite it?`)) return
+      const isUpdate = d.origSlug === slug
+      if (!isUpdate) {
+        const existing = await fetch(
+          `https://api.github.com/repos/${REPO}/contents/${filePath}?ref=${BRANCH}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        if (existing.ok && !confirm(`"${slug}" already exists on the site. Overwrite it?`)) return
+      }
       setStatus('Uploading…')
       const used = Array.from(new Set(Array.from(d.body.matchAll(IMG_RE), (m) => m[1])))
       const images = used
@@ -296,44 +236,14 @@ export default function Write() {
       const url = await commitFiles(
         token,
         [...images, { path: filePath, content: buildFile(d), encoding: 'utf-8' }],
-        `${existing.ok ? 'upd' : 'blog'}: ${d.title.trim()}`
+        `${d.origSlug ? 'upd' : 'blog'}: ${d.title.trim()}`,
+        // slug changed while editing: the old file goes in the same commit
+        d.origSlug && !isUpdate ? [`data/blog/${d.origSlug}.mdx`] : []
       )
-      update({ publishedAt: Date.now() })
+      update({ publishedAt: Date.now(), origSlug: slug })
       setStatus(
         `Published. Live at ${siteMetadata.siteUrl}/blog/${slug} once Vercel deploys. ${url}`
       )
-    } catch (e) {
-      setStatus(`Failed: ${(e as Error).message}`)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const togglePosts = async () => {
-    if (posts) return setPosts(null)
-    try {
-      const files: { name: string }[] = await gh(token, `/contents/data/blog?ref=${BRANCH}`)
-      setPosts(files.filter((f) => f.name.endsWith('.mdx')).map((f) => f.name.slice(0, -4)))
-    } catch (e) {
-      setStatus(`Failed: ${(e as Error).message}`)
-    }
-  }
-
-  const deletePost = async (slug: string) => {
-    if (!confirm(`Delete "${slug}" from the live site? (Recoverable only via git history.)`)) return
-    setBusy(true)
-    try {
-      setStatus(`Deleting ${slug}…`)
-      const { tree } = await gh(token, `/git/trees/${BRANCH}?recursive=1`)
-      const paths = (tree as { path: string; type: string }[])
-        .filter((t) => t.type === 'blob')
-        .map((t) => t.path)
-        .filter(
-          (p) => p === `data/blog/${slug}.mdx` || p.startsWith(`public/static/images/blog/${slug}/`)
-        )
-      const url = await commitFiles(token, [], `del: ${slug}`, paths)
-      setPosts((all) => all?.filter((s) => s !== slug) ?? null)
-      setStatus(`Deleted ${slug} (${paths.length} files). Gone once Vercel deploys. ${url}`)
     } catch (e) {
       setStatus(`Failed: ${(e as Error).message}`)
     } finally {
@@ -349,10 +259,7 @@ export default function Write() {
 
   return (
     <>
-      <Head>
-        <title>Write</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Head>
+      <WriteHead title="Write" />
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 pb-10 sm:px-6">
         <header className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-black/90 sm:-mx-6 sm:px-6">
           <select
@@ -391,16 +298,10 @@ export default function Write() {
             Delete
           </button>
           <div className="ml-auto flex items-center gap-2">
-            <button className={btn} onClick={togglePosts}>
+            <Link href="/write/posts" className={btn}>
               Posts
-            </button>
-            <button
-              className={btn}
-              onClick={() => {
-                localStorage.removeItem(TOKEN_KEY)
-                setToken('')
-              }}
-            >
+            </Link>
+            <button className={btn} onClick={lock}>
               Lock
             </button>
             <button
@@ -412,30 +313,6 @@ export default function Write() {
             </button>
           </div>
         </header>
-
-        {posts && (
-          <ul className="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200 text-sm dark:divide-gray-800 dark:border-gray-800">
-            {posts.map((slug) => (
-              <li key={slug} className="flex items-center gap-2 px-3 py-2">
-                <a
-                  href={`/blog/${slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="min-w-0 flex-1 truncate hover:underline"
-                >
-                  {slug}
-                </a>
-                <button
-                  disabled={busy}
-                  onClick={() => deletePost(slug)}
-                  className="rounded-md px-2 py-1 text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
 
         {(status || storageError) && (
           <p className="mt-3 break-words rounded-md bg-gray-100 px-3 py-2 text-sm dark:bg-gray-900">
@@ -456,7 +333,14 @@ export default function Write() {
           <summary className="cursor-pointer select-none">
             /blog/{slugOf(d) || '…'} · {d.date}
             {d.tags && ` · ${d.tags}`}
+            {d.origSlug && ' · editing live post'}
           </summary>
+          {d.raw && (
+            <p className="mt-2 text-xs">
+              This is the post&apos;s MDX source: {'{'} and &lt; are not escaped, so use them as
+              MDX.
+            </p>
+          )}
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label>
               Slug
@@ -589,6 +473,8 @@ export default function Write() {
                   toc={[]}
                   components={{
                     TOCInline: () => <p className="italic text-gray-500">[Table of contents]</p>,
+                    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+                    Image: (p: Record<string, string>) => <img {...p} />,
                   }}
                 />
               )}
@@ -596,45 +482,6 @@ export default function Write() {
           </div>
         </div>
       </div>
-    </>
-  )
-}
-
-function Unlock({ onUnlock }: { onUnlock: (token: string) => void }) {
-  const [value, setValue] = useState('')
-  const [error, setError] = useState('')
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    try {
-      const repo = await gh(value.trim(), '')
-      if (!repo.permissions?.push) throw new Error('This token cannot push to the repo.')
-      localStorage.setItem(TOKEN_KEY, JSON.stringify(value.trim()))
-      onUnlock(value.trim())
-    } catch (err) {
-      setError((err as Error).message)
-    }
-  }
-
-  return (
-    <>
-      <Head>
-        <title>Write</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Head>
-      <form onSubmit={submit} className="mx-auto mt-32 flex max-w-sm flex-col gap-3 px-4">
-        <input
-          type="password"
-          autoComplete="current-password"
-          placeholder="GitHub token"
-          className="rounded-md border-gray-200 bg-transparent dark:border-gray-700"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <button className="rounded-md bg-primary-500 py-2 font-semibold text-white">Unlock</button>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-      </form>
     </>
   )
 }
