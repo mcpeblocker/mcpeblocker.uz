@@ -397,6 +397,27 @@ export default function Write() {
     const text = sel || placeholder
     replace(s, e, before + text + after, s + before.length, s + before.length + text.length)
   }
+  // Bold (**) and italic (*) share a character, so count the run of stars:
+  // italic is on when the run is odd (*x*, ***x***), bold when it's 2+.
+  const stars = (n: 1 | 2, placeholder: string) => {
+    const cur = selection()
+    if (!cur) return
+    const { v, s, e } = cur
+    const sel = v.slice(s, e)
+    const on = (run: number) => (n === 1 ? run % 2 === 1 : run >= 2)
+    const lead = (t: string) => t.length - t.replace(/^\*+/, '').length
+    const trail = (t: string) => t.length - t.replace(/\*+$/, '').length
+    const around = Math.min(trail(v.slice(0, s)), lead(v.slice(e)))
+    if (on(around)) return replace(s - n, e + n, sel, s - n, e - n)
+    const inside = Math.min(lead(sel), trail(sel))
+    if (sel.length > 2 * n && on(inside)) {
+      const inner = sel.slice(n, sel.length - n)
+      return replace(s, e, inner, s, s + inner.length)
+    }
+    const mark = '*'.repeat(n)
+    const text = sel || placeholder
+    replace(s, e, mark + text + mark, s + n, s + n + text.length)
+  }
   // Toggle a line prefix; a different heading/list/quote prefix is swapped out.
   const linePrefix = (prefix: string) => {
     const cur = selection()
@@ -490,8 +511,8 @@ export default function Write() {
       [RiH3, 'Subheading', () => linePrefix('### ')],
     ],
     [
-      [RiBold, 'Bold (Ctrl+B)', () => wrap('**', '**', 'bold')],
-      [RiItalic, 'Italic (Ctrl+I)', () => wrap('_', '_', 'italic')],
+      [RiBold, 'Bold (Ctrl+B)', () => stars(2, 'bold')],
+      [RiItalic, 'Italic (Ctrl+I)', () => stars(1, 'italic')],
       [RiCodeLine, 'Inline code', () => wrap('`', '`', 'code')],
       [RiLink, 'Link (Ctrl+K)', () => wrap('[', '](https://)', 'link')],
     ],
