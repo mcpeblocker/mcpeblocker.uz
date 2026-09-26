@@ -21,6 +21,8 @@ import { ComponentType, Fragment, useEffect, useRef, useState } from 'react'
 import { IconType } from 'react-icons'
 import {
   RiAddLine,
+  RiArrowGoBackLine,
+  RiArrowGoForwardLine,
   RiArticleLine,
   RiBold,
   RiCodeBoxLine,
@@ -213,8 +215,20 @@ export default function Write() {
   const d = drafts[id]
   const previewSource = d ? buildBody(d, (imgId) => d.images[imgId]) : ''
 
+  // Split view on desktop; on phones the preview is a tab and only compiles
+  // while open, so typing isn't slowed by MDX compiles.
+  const [wide, setWide] = useState(false)
   useEffect(() => {
-    if (!d) return
+    const mq = matchMedia('(min-width: 1024px)')
+    const onChange = () => setWide(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  const showPreview = wide || tab === 'preview'
+
+  useEffect(() => {
+    if (!d || !showPreview) return
     let live = true
     const t = setTimeout(() => {
       compile(previewSource)
@@ -225,7 +239,7 @@ export default function Write() {
       live = false
       clearTimeout(t)
     }
-  }, [previewSource]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [previewSource, showPreview]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-highlight once the preview re-renders with new content.
   useEffect(() => highlight(false), [preview.Content]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -261,7 +275,7 @@ export default function Write() {
     const ta = textRef.current
     const pane = paneRef.current
     const mirror = mirrorRef.current
-    if (!ta || !pane || !mirror || !pane.offsetParent) return
+    if (!ta || !pane || !mirror || !wide) return
     mirror.style.width = `${ta.clientWidth}px`
     const paneTop = pane.getBoundingClientRect().top - pane.scrollTop
     const pts: [number, number][] = [[0, 0]]
@@ -287,33 +301,71 @@ export default function Write() {
   const update = (patch: Partial<Draft>) =>
     setDrafts((all) => ({ ...all, [id]: { ...all[id], ...patch, updated: Date.now() } }))
 
-  const edit = (fn: (value: string, start: number, end: number) => [string, number, number]) => {
+  // Replace [from, to) with text, then select [selFrom, selTo). Goes through
+  // execCommand so the browser's own undo stack (Ctrl+Z) records it; assigning
+  // .value would wipe that history.
+  const replace = (from: number, to: number, text: string, selFrom: number, selTo: number) => {
     const ta = textRef.current
     if (!ta) return
-    const [value, s, e] = fn(ta.value, ta.selectionStart, ta.selectionEnd)
-    update({ body: value })
-    requestAnimationFrame(() => {
-      ta.focus()
-      ta.setSelectionRange(s, e)
-    })
+    ta.focus()
+    ta.setSelectionRange(from, to)
+    const ok = text
+      ? document.execCommand('insertText', false, text)
+      : from === to || document.execCommand('delete')
+    if (!ok) {
+      ta.setRangeText(text, from, to)
+      update({ body: ta.value })
+    }
+    ta.setSelectionRange(selFrom, selTo)
   }
-  const wrap = (before: string, after: string, placeholder: string) =>
-    edit((v, s, e) => {
-      const sel = v.slice(s, e) || placeholder
-      const at = s + before.length
-      return [v.slice(0, s) + before + sel + after + v.slice(e), at, at + sel.length]
-    })
-  const linePrefix = (prefix: string) =>
-    edit((v, s, e) => {
-      const lineStart = v.lastIndexOf('\n', s - 1) + 1
-      return [
-        v.slice(0, lineStart) + prefix + v.slice(lineStart),
-        s + prefix.length,
-        e + prefix.length,
-      ]
-    })
-  const insert = (text: string) =>
-    edit((v, s, e) => [v.slice(0, s) + text + v.slice(e), s + text.length, s + text.length])
+  const selection = () => {
+    const ta = textRef.current
+    return ta ? { v: ta.value, s: ta.selectionStart, e: ta.selectionEnd } : null
+  }
+  // Toggle: markers around (or inside) the selection are removed, else added.
+  const wrap = (before: string, after: string, placeholder: string) => {
+    const cur = selection()
+    if (!cur) return
+    const { v, s, e } = cur
+    const sel = v.slice(s, e)
+    if (v.slice(s - before.length, s) === before && v.slice(e, e + after.length) === after)
+      return replace(s - before.length, e + after.length, sel, s - before.length, e - before.length)
+    if (
+      sel.length >= before.length + after.length &&
+      sel.startsWith(before) &&
+      sel.endsWith(after)
+    ) {
+      const inner = sel.slice(before.length, sel.length - after.length)
+      return replace(s, e, inner, s, s + inner.length)
+    }
+    const text = sel || placeholder
+    replace(s, e, before + text + after, s + before.length, s + before.length + text.length)
+  }
+  // Toggle a line prefix; a different heading/list/quote prefix is swapped out.
+  const linePrefix = (prefix: string) => {
+    const cur = selection()
+    if (!cur) return
+    const { v, s, e } = cur
+    const start = v.lastIndexOf('\n', s - 1) + 1
+    const existing = v.slice(start).match(/^(#{1,6} |> |- |\d+\. )/)?.[0] ?? ''
+    const next = existing === prefix ? '' : prefix
+    const shift = next.length - existing.length
+    replace(
+      start,
+      start + existing.length,
+      next,
+      Math.max(start, s + shift),
+      Math.max(start, e + shift)
+    )
+  }
+  const insert = (text: string) => {
+    const cur = selection()
+    if (cur) replace(cur.s, cur.e, text, cur.s + text.length, cur.s + text.length)
+  }
+  const history = (cmd: 'undo' | 'redo') => {
+    textRef.current?.focus()
+    document.execCommand(cmd)
+  }
 
   const addImages = async (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith('image/'))
@@ -374,6 +426,10 @@ export default function Write() {
 
   const tools: [IconType, string, () => void][][] = [
     [
+      [RiArrowGoBackLine, 'Undo (Ctrl+Z)', () => history('undo')],
+      [RiArrowGoForwardLine, 'Redo (Ctrl+Shift+Z)', () => history('redo')],
+    ],
+    [
       [RiH2, 'Heading', () => linePrefix('## ')],
       [RiH3, 'Subheading', () => linePrefix('### ')],
     ],
@@ -396,9 +452,9 @@ export default function Write() {
     ],
   ]
   const shortcuts: Record<string, () => void> = {
-    b: tools[1][0][2],
-    i: tools[1][1][2],
-    k: tools[1][3][2],
+    b: tools[2][0][2],
+    i: tools[2][1][2],
+    k: tools[2][3][2],
   }
 
   const sorted = Object.values(drafts).sort((a, b) => b.updated - a.updated)
@@ -419,15 +475,13 @@ export default function Write() {
         }
         .write-preview [data-line] { transition: background 0.15s, box-shadow 0.15s; }
       `}</style>
-      {/* Fixed-height app shell: each pane scrolls on its own so they can be synced. */}
-      <div
-        className="mx-auto flex h-screen max-w-7xl flex-col px-4 sm:px-6"
-        style={{ height: '100dvh' }}
-      >
+      {/* Desktop: fixed-height shell, each pane scrolls on its own so they can be
+          synced. Phone: a normal scrolling page with a growing textarea. */}
+      <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:h-[100dvh]">
         <header className="-mx-4 flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 px-4 py-2.5 dark:border-gray-800 sm:-mx-6 sm:px-6">
           <select
             aria-label="Drafts"
-            className="mr-1 min-w-0 max-w-[40vw] flex-1 rounded-lg border-gray-200 bg-transparent py-1.5 text-sm dark:border-gray-700 sm:max-w-xs sm:flex-none"
+            className="mr-1 min-w-0 flex-1 rounded-lg border-gray-200 bg-transparent py-1.5 text-base dark:border-gray-700 sm:max-w-xs sm:flex-none sm:text-sm"
             value={id}
             onChange={(e) => setId(e.target.value)}
           >
@@ -550,70 +604,82 @@ export default function Write() {
               </label>
             </div>
           </details>
-
-          <div className="mt-3 flex items-center gap-2 border-b border-gray-200 pb-3 dark:border-gray-800">
-            <div className="flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 shadow-sm dark:border-gray-800 dark:bg-gray-900/60">
-              {tools.map((group, gi) => (
-                <Fragment key={gi}>
-                  {gi > 0 && <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />}
-                  {group.map(([Icon, label, action]) => (
-                    <button
-                      key={label}
-                      type="button"
-                      title={label}
-                      aria-label={label}
-                      // keep the textarea's selection when clicking a tool
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={action}
-                      className="grid h-9 w-9 place-items-center rounded-lg text-gray-500 transition hover:bg-white hover:text-primary-500 hover:shadow-sm active:scale-90 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary-400"
-                    >
-                      <Icon size={18} />
-                    </button>
-                  ))}
-                </Fragment>
-              ))}
-            </div>
-            <div className="ml-auto flex shrink-0 rounded-lg bg-gray-100 p-0.5 text-sm dark:bg-gray-900 lg:hidden">
-              {(['write', 'preview'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`rounded-md px-3 py-1 capitalize ${
-                    tab === t ? 'bg-white shadow dark:bg-gray-700' : 'text-gray-500'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => {
-                addImages(Array.from(e.target.files ?? []))
-                e.target.value = ''
-              }}
-            />
-          </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-10 pt-4 lg:grid-cols-2">
+        {/* Sticky on phones so formatting stays reachable while typing. */}
+        <div className="sticky top-0 z-10 -mx-4 mt-3 flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white/95 px-4 py-2 backdrop-blur dark:border-gray-800 dark:bg-black/95 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pb-3 lg:pt-0 lg:backdrop-blur-none">
+          <div
+            className="flex min-w-0 items-center overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1 shadow-sm dark:border-gray-800 dark:bg-gray-900/60"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {tools.map((group, gi) => (
+              <Fragment key={gi}>
+                {gi > 0 && <span className="mx-1 h-5 w-px shrink-0 bg-gray-200 dark:bg-gray-700" />}
+                {group.map(([Icon, label, action]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    // keep the textarea's selection when clicking a tool
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={action}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-white hover:text-primary-500 hover:shadow-sm active:scale-90 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary-400"
+                  >
+                    <Icon size={18} />
+                  </button>
+                ))}
+              </Fragment>
+            ))}
+          </div>
+          <div className="ml-auto flex shrink-0 rounded-lg bg-gray-100 p-0.5 text-sm dark:bg-gray-900 lg:hidden">
+            {(['write', 'preview'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`rounded-md px-3 py-1 capitalize ${
+                  tab === t ? 'bg-white shadow dark:bg-gray-700' : 'text-gray-500'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              addImages(Array.from(e.target.files ?? []))
+              e.target.value = ''
+            }}
+          />
+        </div>
+
+        <div className="grid gap-10 pb-16 pt-4 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:pb-0">
+          {/* Phone: textarea and mirror share one grid cell, so the invisible
+              mirror sizes the cell and the textarea grows with the text.
+              Desktop: the mirror is lifted out and only measures line tops. */}
           <div
             className={`${
-              tab === 'write' ? 'block' : 'hidden'
-            } relative min-h-0 overflow-hidden lg:block`}
+              tab === 'write' ? 'grid' : 'hidden'
+            } relative min-h-[60vh] lg:block lg:min-h-0 lg:overflow-hidden`}
           >
             <textarea
               ref={textRef}
-              className={`${editorText} h-full w-full resize-none border-0 bg-transparent p-0 pb-[40vh] focus:ring-0`}
+              className={`${editorText} w-full resize-none overflow-hidden border-0 bg-transparent p-0 [grid-area:1/1] focus:ring-0 lg:h-full lg:overflow-y-auto lg:pb-[40vh]`}
               placeholder="Write in Markdown. Paste or drop images anywhere."
               value={d.body}
               onChange={(e) => update({ body: e.target.value })}
               onSelect={() => highlight(true)}
-              onScroll={syncScroll}
+              onScroll={(e) => {
+                // phone: the textarea grows instead of scrolling; undo the brief
+                // inner scroll a new line causes before the mirror catches up
+                if (!wide) e.currentTarget.scrollTop = 0
+                else syncScroll()
+              }}
               onKeyDown={(e) => {
                 const action = (e.ctrlKey || e.metaKey) && shortcuts[e.key.toLowerCase()]
                 if (!action) return
@@ -636,18 +702,19 @@ export default function Write() {
             <div
               ref={mirrorRef}
               aria-hidden
-              className={`${editorText} pointer-events-none invisible absolute left-0 top-0`}
+              className={`${editorText} pointer-events-none invisible [grid-area:1/1] lg:absolute lg:left-0 lg:top-0`}
             >
               {d.body.split('\n').map((l, i) => (
                 <div key={i}>{l || '\u00a0'}</div>
               ))}
+              <div>{'\u00a0'}</div>
             </div>
           </div>
           <div
             ref={paneRef}
             className={`${
               tab === 'preview' ? 'block' : 'hidden'
-            } write-preview min-h-0 min-w-0 overflow-y-auto pb-[40vh] pr-3 lg:block`}
+            } write-preview min-w-0 lg:block lg:min-h-0 lg:overflow-y-auto lg:pb-[40vh] lg:pr-3`}
           >
             {preview.error && (
               <pre className="mb-4 whitespace-pre-wrap rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
