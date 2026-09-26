@@ -6,9 +6,10 @@ interface CardProps {
   description: string
   imgSrc?: string
   href?: string
+  links?: { label: string; href: string }[]
 }
 
-export default function Card({ title, description, imgSrc, href }: CardProps) {
+export default function Card({ title, description, imgSrc, href, links }: CardProps) {
   return (
     <div className="p-2 md:w-1/2 md" style={{ maxWidth: '544px' }}>
       <div className="h-full overflow-hidden hover:bg-gray-200 hover:bg-opacity-20 rounded-md border-opacity-60 dark:border-gray-700">
@@ -43,6 +44,15 @@ export default function Card({ title, description, imgSrc, href }: CardProps) {
             )}
           </h2>
           <p className="prose text-gray-500 max-w-none dark:text-gray-400">{description}</p>
+          {links && links.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-base font-medium text-primary-500">
+              {links.map((l) => (
+                <Link key={l.href} href={l.href}>
+                  {l.label} &rarr;
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -28,6 +28,7 @@ export type Project = {
   tag: string[]
   imgSrc?: string
   href?: string
+  links?: { label: string; href: string }[] // extra links, e.g. app stores
 }
 
 const projectsData: Project[] = [
@@ -59,15 +60,21 @@ const projectsData: Project[] = [
     tag: ['typescript', 'react-native', 'nextjs', 'python', 'django'],
     href: 'https://play.google.com/store/apps/details?id=com.teambl.teambl&hl=en',
   },
-  // Not yet publicized.
-  // {
-  //   title: 'TezQur',
-  //   description: `E-commerce platform for building materials in Uzbekistan — nested product catalog, ordering and delivery-driver management, shipped as a monorepo with web, mobile, landing and admin apps.`,
-  //   category: 'startup',
-  //   imgSrc: '/static/images/project/tezqur.png',
-  //   tag: ['typescript', 'nestjs', 'nextjs', 'react-native', 'postgresql'],
-  //   href: 'https://tezqur.uz',
-  // },
+  {
+    title: 'TezQur',
+    description: `E-commerce platform for building materials in Uzbekistan — nested product catalog, ordering and delivery-driver management, shipped as a monorepo with web, mobile, landing and admin apps.`,
+    category: 'startup',
+    imgSrc: '/static/images/project/tezqur.png',
+    tag: ['typescript', 'nestjs', 'nextjs', 'react-native', 'postgresql'],
+    href: 'https://tezqur.uz',
+    links: [
+      {
+        label: 'Google Play',
+        href: 'https://play.google.com/store/apps/details?id=com.tezqur.app',
+      },
+      { label: 'App Store', href: 'https://apps.apple.com/us/app/tezqur/id6775979004' },
+    ],
+  },
   {
     title: 'Guardian Angel',
     description: `An AI-powered anti-harassment system for companies designed to detect workplace harassment in real-time using speech recognition and machine learning technologies. GESS 2025 Program Finalist.`,

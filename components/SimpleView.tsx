@@ -209,6 +209,21 @@ export default function SimpleView() {
                               <span className="font-medium text-gray-900">{project.title}</span>
                             )}
                             <p className="mt-1 text-sm text-gray-600">{project.description}</p>
+                            {project.links && project.links.length > 0 && (
+                              <p className="mt-1 space-x-3 text-sm">
+                                {project.links.map((l) => (
+                                  <a
+                                    key={l.href}
+                                    href={l.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sky-700 hover:underline"
+                                  >
+                                    {l.label}
+                                  </a>
+                                ))}
+                              </p>
+                            )}
                             {project.tag.length > 0 && (
                               <p className="mt-2 text-xs text-gray-400">
                                 {project.tag.join(' · ')}
