@@ -11,6 +11,7 @@ export const aboutTabs = [
 const headerNavLinks: NavLink[] = [
   { href: '/blog', title: 'Blog' },
   { href: '/gallery', title: 'Gallery' },
+  { href: '/quotes', title: 'Quotes' },
   { href: '/projects', title: 'Projects' },
   { href: '/about', title: 'About', match: aboutTabs.map((t) => t.href) },
 ]

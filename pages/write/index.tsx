@@ -755,6 +755,10 @@ export default function Write() {
               <RiArticleLine size={18} />
               <span className="hidden sm:inline">Posts</span>
             </Link>
+            <Link href="/write/quotes" className={btn} title="Manage quotes">
+              <RiDoubleQuotesL size={18} />
+              <span className="hidden sm:inline">Quotes</span>
+            </Link>
             <button className={btn} onClick={lock} title="Forget token on this device">
               <RiLockLine size={18} />
               <span className="hidden sm:inline">Lock</span>
