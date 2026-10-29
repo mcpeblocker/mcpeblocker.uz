@@ -601,6 +601,23 @@ export default function Write() {
         )
         if (existing.ok && !confirm(`"${slug}" already exists on the site. Overwrite it?`)) return
       }
+      if (d.origSlug) {
+        // The live post changed after this draft last synced (edited from another
+        // device or via git): publishing would silently undo those changes.
+        const [last] = await gh(
+          token,
+          `/commits?sha=${BRANCH}&per_page=1&path=data/blog/${d.origSlug}.mdx`
+        )
+        const changedAt = last ? Date.parse(last.commit.committer.date) : 0
+        if (
+          changedAt > (d.publishedAt ?? 0) + 60_000 && // slack for clock skew
+          !confirm(
+            `The live post was changed after this draft was saved ("${last.commit.message}").\n\n` +
+              'Publishing overwrites those changes. Cancel, then open it from Posts to load the live version.'
+          )
+        )
+          return setStatus('Not published.')
+      }
       setStatus('Uploading…')
       const thumbId = localId(d.thumbnail)
       const used = Array.from(
